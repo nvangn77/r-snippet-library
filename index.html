@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>R Snippet Library</title>
+<style>
+  :root {
+    --bg: #F5F4F0;
+    --bg-elev: #FBFAF7;
+    --bg-card: #FFFFFF;
+    --border: #E2E0D8;
+    --text: #24241F;
+    --text-dim: #6B6A60;
+    --accent: #4A7C4F;
+    --accent-soft: #E6EFE6;
+    --accent-text: #FFFFFF;
+    --pill-bg: #ECEAE2;
+    --pill-text: #50504A;
+    --code-bg: #F1EFE8;
+    --danger: #B4534B;
+    --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 12px rgba(0,0,0,.04);
+    --radius: 10px;
+  }
+  html[data-theme="dark"] {
+    --bg: #1A1A1D;
+    --bg-elev: #222226;
+    --bg-card: #26262B;
+    --border: #36363C;
+    --text: #E8E7E2;
+    --text-dim: #9A998F;
+    --accent: #7BAE7F;
+    --accent-soft: #2A3A2C;
+    --accent-text: #14140F;
+    --pill-bg: #33333A;
+    --pill-text: #C2C1B8;
+    --code-bg: #1E1E22;
+    --danger: #D9776E;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  a { color: var(--accent); }
+
+  /* Header */
+  header {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 20px;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; white-space: nowrap; }
+  .brand .logo {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--accent); color: var(--accent-text);
+    display: grid; place-items: center; font-weight: 800; font-size: 15px;
+  }
+  .search-wrap { flex: 1; max-width: 520px; position: relative; }
+  #search {
+    width: 100%; padding: 9px 12px 9px 34px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg-card); color: var(--text); font-size: 14px;
+  }
+  #search:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .search-wrap .icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+  .header-spacer { flex: 1; }
+  .control {
+    background: var(--bg-card); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 11px; font-size: 13px;
+  }
+  select.control { cursor: pointer; }
+  .btn-accent { background: var(--accent); color: var(--accent-text); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 13px; }
+  .btn-accent:hover { filter: brightness(1.05); }
+  .icon-btn { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; width: 36px; height: 36px; display: grid; place-items: center; color: var(--text); }
+  .icon-btn:hover { background: var(--accent-soft); }
+  #hamburger { display: none; }
+
+  /* Layout */
+  .layout { display: grid; grid-template-columns: 248px 1fr; align-items: start; }
+  aside {
+    position: sticky; top: 61px; align-self: start;
+    height: calc(100vh - 61px); overflow-y: auto;
+    border-right: 1px solid var(--border);
+    padding: 16px 10px 40px;
+    background: var(--bg-elev);
+  }
+  .nav-section { margin-bottom: 18px; }
+  .nav-section h3 { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); margin: 4px 8px 6px; }
+  .nav-item {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    width: 100%; text-align: left; background: none; border: none;
+    color: var(--text); padding: 7px 9px; border-radius: 7px; font-size: 13.5px;
+  }
+  .nav-item:hover { background: var(--accent-soft); }
+  .nav-item.active { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+  .nav-item .count { font-size: 11.5px; color: var(--text-dim); background: var(--pill-bg); border-radius: 20px; padding: 1px 7px; }
+  .nav-item.active .count { color: var(--accent-text); background: rgba(255,255,255,.22); }
+
+  .tagbrowser { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 8px; }
+  .tagbrowser .tagchip {
+    background: var(--pill-bg); color: var(--pill-text); border: none;
+    border-radius: 20px; padding: 3px 9px; font-size: 12px;
+  }
+  .tagbrowser .tagchip:hover { background: var(--accent-soft); color: var(--text); }
+  .tagbrowser .tagchip.active { background: var(--accent); color: var(--accent-text); }
+  .tagbrowser .tagchip .c { opacity: .7; margin-left: 4px; }
+
+  /* Main */
+  main { padding: 22px 28px 80px; max-width: 920px; }
+  .result-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .result-bar .count-line { color: var(--text-dim); font-size: 13.5px; }
+  .active-filter { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-soft); color: var(--accent); border-radius: 20px; padding: 3px 10px; font-size: 12.5px; font-weight: 600; }
+  .active-filter button { background: none; border: none; color: inherit; font-size: 14px; line-height: 1; padding: 0; }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 12px; overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .card-head { display: flex; align-items: center; gap: 14px; padding: 14px 16px; cursor: pointer; }
+  .card-head:hover { background: var(--accent-soft); }
+  .card-head .titles { flex: 1; min-width: 0; }
+  .card-head .title { font-weight: 650; font-size: 15px; }
+  .card-head .sub { color: var(--text-dim); font-size: 12.5px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cat-chip { font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 2px 8px; white-space: nowrap; }
+  .thumb { width: 64px; height: 44px; border-radius: 6px; border: 1px solid var(--border); overflow: hidden; flex-shrink: 0; background: var(--code-bg); }
+  .thumb svg, .preview-lg svg { width: 100%; height: 100%; display: block; }
+  .chevron { color: var(--text-dim); transition: transform .15s; flex-shrink: 0; }
+  .card.open .chevron { transform: rotate(90deg); }
+
+  .card-body { display: none; padding: 0 16px 16px; }
+  .card.open .card-body { display: block; }
+  .card-body .desc { color: var(--text-dim); font-size: 13.5px; margin: 4px 0 12px; }
+  .preview-lg { width: 100%; max-width: 420px; height: 200px; border: 1px solid var(--border); border-radius: 8px; background: var(--code-bg); margin: 0 0 14px; overflow: hidden; }
+  .code-wrap { position: relative; }
+  pre {
+    margin: 0; background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 14px; overflow-x: auto;
+    font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 12.8px; line-height: 1.55; color: var(--text);
+  }
+  .copy-btn { position: absolute; top: 8px; right: 8px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 9px; font-size: 12px; }
+  .copy-btn:hover { background: var(--accent-soft); }
+  .tags-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .tag-pill { background: var(--pill-bg); color: var(--pill-text); border: none; border-radius: 20px; padding: 3px 10px; font-size: 12px; }
+  .tag-pill:hover { background: var(--accent); color: var(--accent-text); }
+  .tag-pill::before { content: "#"; opacity: .5; }
+  .card-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .mini-btn { background: var(--bg-elev); border: 1px solid var(--border); color: var(--text); border-radius: 7px; padding: 6px 12px; font-size: 12.5px; }
+  .mini-btn:hover { background: var(--accent-soft); }
+  .mini-btn.danger { color: var(--danger); }
+  .mini-btn.danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+  .empty { text-align: center; color: var(--text-dim); padding: 60px 20px; }
+
+  /* Modal */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; z-index: 50; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 680px; box-shadow: var(--shadow); }
+  .modal h2 { margin: 0; padding: 18px 22px; border-bottom: 1px solid var(--border); font-size: 17px; }
+  .modal form { padding: 18px 22px 22px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-dim); margin-bottom: 5px; }
+  .field input, .field textarea, .field select {
+    width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg-elev); color: var(--text); font-size: 14px; font-family: inherit;
+  }
+  .field textarea { resize: vertical; }
+  .field textarea.code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; min-height: 180px; }
+  .field input:focus, .field textarea:focus, .field select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+
+  @media (max-width: 820px) {
+    .layout { grid-template-columns: 1fr; }
+    aside {
+      position: fixed; top: 61px; left: 0; bottom: 0; width: 270px; z-index: 30;
+      transform: translateX(-100%); transition: transform .2s; box-shadow: var(--shadow);
+    }
+    body.nav-open aside { transform: translateX(0); }
+    #hamburger { display: grid; }
+    .search-wrap { max-width: none; }
+    main { padding: 18px 16px 80px; }
+  }
+  .field-row { } @media (max-width: 520px){ .field-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <header>
+    <button id="hamburger" class="icon-btn" title="Menu" aria-label="Toggle menu">☰</button>
+    <div class="brand"><span class="logo">R</span><span class="brand-text">Snippet Library</span></div>
+    <div class="search-wrap">
+      <span class="icon">⌕</span>
+      <input id="search" type="text" placeholder="Search snippets…  ( / )" autocomplete="off" />
+    </div>
+    <div class="header-spacer"></div>
+    <select id="sort" class="control" title="Sort">
+      <option value="newest">Newest</option>
+      <option value="updated">Recently updated</option>
+      <option value="az">A–Z</option>
+      <option value="category">By category</option>
+    </select>
+    <button id="addBtn" class="btn-accent">+ New</button>
+    <select id="moreMenu" class="control" title="More">
+      <option value="">⋯</option>
+      <option value="export">Export JSON</option>
+      <option value="import">Import JSON</option>
+      <option value="reset">Reset to defaults</option>
+    </select>
+    <button id="themeBtn" class="icon-btn" title="Toggle theme">◐</button>
+    <input id="importFile" type="file" accept="application/json" style="display:none" />
+  </header>
+
+  <div class="layout">
+    <aside id="sidebar"></aside>
+    <main>
+      <div class="result-bar">
+        <span class="count-line" id="countLine"></span>
+        <span id="activeFilterWrap"></span>
+      </div>
+      <div id="list"></div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <h2 id="modalTitle">New snippet</h2>
+      <form id="snippetForm">
+        <input type="hidden" id="f_id" />
+        <div class="field">
+          <label for="f_title">Title</label>
+          <input id="f_title" required />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="f_category">Category</label>
+            <select id="f_category"></select>
+          </div>
+          <div class="field">
+            <label for="f_previewType">Preview type (visualization only)</label>
+            <select id="f_previewType"></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f_description">Description</label>
+          <input id="f_description" />
+        </div>
+        <div class="field">
+          <label for="f_tags">Tags (comma-separated)</label>
+          <input id="f_tags" placeholder="ggplot2, survival, cohort" />
+        </div>
+        <div class="field">
+          <label for="f_code">R code</label>
+          <textarea id="f_code" class="code" required></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="mini-btn" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn-accent">Save snippet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Category configuration  (4 sections, 20 categories)
+   ============================================================ */
+const SECTIONS = [
+  { name: "Setup & data", cats: [
+    ["setup", "Setup & environment"],
+    ["import", "Data import"],
+    ["cleaning", "Data cleaning"],
+  ]},
+  { name: "Study design", cats: [
+    ["cohort", "Cohort construction"],
+    ["exposure", "Exposure & outcome"],
+    ["causal", "Causal inference & design"],
+    ["confounding", "Confounding & bias"],
+    ["matching", "Matching"],
+    ["selfcontrolled", "Self-controlled designs"],
+  ]},
+  { name: "Analysis", cats: [
+    ["descriptive", "Descriptive analysis"],
+    ["survival", "Survival analysis"],
+    ["regression", "Regression & inference"],
+    ["longitudinal", "Longitudinal & panel"],
+    ["screening", "Screening & diagnostics"],
+    ["prediction", "Prediction modeling"],
+    ["meta", "Meta-analysis"],
+    ["spatial", "Spatial epidemiology"],
+    ["genomic", "Genomic & molecular epi"],
+  ]},
+  { name: "Output", cats: [
+    ["visualization", "Visualization"],
+    ["reporting", "Reporting"],
+  ]},
+];
+const CAT_LABEL = {};
+SECTIONS.forEach(s => s.cats.forEach(([id, label]) => CAT_LABEL[id] = label));
+
+/* Visualization preview types (25) */
+const PREVIEW_TYPES = [
+  "forest_plot","km_curve","scatter","heatmap","dag","bar_chart","line_trend",
+  "box_plot","histogram","funnel_plot","roc_curve","calibration","epi_curve",
+  "choropleth","violin","cumulative_incidence","density","dose_response",
+  "lollipop","spaghetti","corr_matrix","pyramid","ridgeline","stacked_area","bland_altman"
+];
+
+/* ============================================================
+   SVG previews — all colours via CSS vars so they recolour
+   automatically in light / dark mode.
+   ============================================================ */
+function svgPreview(type) {
+  const A = "var(--accent)";
+  const G = "var(--text-dim)";
+  const T = "var(--text)";
+  const open = '<svg viewBox="0 0 120 80" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">';
+  const ax = `<line x1="14" y1="68" x2="112" y2="68" stroke="${G}" stroke-width="1"/><line x1="14" y1="8" x2="14" y2="68" stroke="${G}" stroke-width="1"/>`;
+  let body = "";
+  switch (type) {
+    case "forest_plot": {
+      const rows = [[40,30],[62,18],[78,22],[55,26]];
+      body = `<line x1="63" y1="8" x2="63" y2="70" stroke="${G}" stroke-dasharray="2 2" stroke-width="1"/>`;
+      rows.forEach((r,i)=>{ const y=16+i*13; body+=`<line x1="${r[0]}" y1="${y}" x2="${r[0]+r[1]}" y2="${y}" stroke="${A}" stroke-width="1.4"/><rect x="${(r[0]+r[0]+r[1])/2-2}" y="${y-2}" width="4" height="4" fill="${A}"/>`; });
+      body += `<path d="M55 72 L63 64 L71 72 Z" fill="${A}" opacity=".7"/>`;
+      break; }
+    case "km_curve": {
+      body = ax + `<path d="M14 14 H40 V26 H64 V30 H82 V42 H104 V46" fill="none" stroke="${A}" stroke-width="1.8"/><path d="M14 20 H44 V34 H70 V42 H92 V54 H110" fill="none" stroke="${G}" stroke-width="1.4" stroke-dasharray="3 2"/>`;
+      break; }
+    case "scatter": {
+      body = ax; const pts=[[24,52],[34,46],[40,50],[48,40],[56,38],[62,30],[70,34],[78,24],[88,20],[96,16],[50,44],[66,28]];
+      pts.forEach(p=> body+=`<circle cx="${p[0]}" cy="${p[1]}" r="2.4" fill="${A}" opacity=".8"/>`);
+      body += `<line x1="20" y1="56" x2="104" y2="14" stroke="${G}" stroke-width="1.2"/>`;
+      break; }
+    case "heatmap": {
+      const op=[.2,.5,.8,.4,.7,.3,.9,.6,.25,.55,.85,.45];
+      for(let r=0;r<4;r++)for(let c=0;c<6;c++){const i=(r*6+c)%op.length;body+=`<rect x="${20+c*14}" y="${12+r*13}" width="13" height="12" fill="${A}" opacity="${op[i]}"/>`;}
+      break; }
+    case "dag": {
+      const node=(x,y,l)=>`<circle cx="${x}" cy="${y}" r="8" fill="var(--bg-card)" stroke="${A}" stroke-width="1.4"/><text x="${x}" y="${y+3}" font-size="8" fill="${T}" text-anchor="middle">${l}</text>`;
+      const arr=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${G}" stroke-width="1.2" marker-end="url(#ah)"/>`;
+      body = `<defs><marker id="ah" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 Z" fill="${G}"/></marker></defs>`+
+        arr(28,40,52,40)+arr(40,18,55,33)+arr(40,18,80,33)+node(20,40,"E")+node(60,40,"O")+node(40,16,"C");
+      break; }
+    case "bar_chart": {
+      body = ax; const h=[20,38,28,48,34,52]; h.forEach((v,i)=> body+=`<rect x="${22+i*15}" y="${68-v}" width="10" height="${v}" fill="${A}" opacity=".85"/>`);
+      break; }
+    case "line_trend": {
+      body = ax + `<polyline points="16,58 32,50 48,54 64,38 80,42 96,24 110,18" fill="none" stroke="${A}" stroke-width="1.8"/>`;
+      break; }
+    case "box_plot": {
+      const box=(x,lo,q1,q3,hi,med)=>`<line x1="${x}" y1="${lo}" x2="${x}" y2="${hi}" stroke="${G}" stroke-width="1"/><rect x="${x-7}" y="${q3}" width="14" height="${q1-q3}" fill="${A}" opacity=".7" stroke="${A}"/><line x1="${x-7}" y1="${med}" x2="${x+7}" y2="${med}" stroke="${T}" stroke-width="1.4"/>`;
+      body = ax + box(34,60,52,34,18,44) + box(62,58,48,30,14,40) + box(90,62,54,38,22,46);
+      break; }
+    case "histogram": {
+      body = ax; const h=[10,22,34,46,40,30,18,10]; h.forEach((v,i)=> body+=`<rect x="${16+i*12}" y="${68-v}" width="11" height="${v}" fill="${A}" opacity=".8" stroke="var(--bg-card)"/>`);
+      break; }
+    case "funnel_plot": {
+      body = ax + `<line x1="63" y1="10" x2="63" y2="68" stroke="${G}" stroke-dasharray="2 2"/><path d="M63 12 L100 66 L26 66 Z" fill="none" stroke="${G}" stroke-width="1" opacity=".6"/>`;
+      const pts=[[60,20],[68,22],[55,30],[72,32],[50,42],[78,44],[63,16],[58,50],[70,52]];
+      pts.forEach(p=> body+=`<circle cx="${p[0]}" cy="${p[1]}" r="2.3" fill="${A}" opacity=".8"/>`);
+      break; }
+    case "roc_curve": {
+      body = ax + `<line x1="14" y1="68" x2="112" y2="8" stroke="${G}" stroke-dasharray="3 2"/><path d="M14 68 C30 30, 50 18, 112 8" fill="none" stroke="${A}" stroke-width="1.8"/>`;
+      break; }
+    case "calibration": {
+      body = ax + `<line x1="14" y1="68" x2="112" y2="8" stroke="${G}" stroke-dasharray="3 2"/><polyline points="16,64 36,52 56,46 76,30 96,20 110,12" fill="none" stroke="${A}" stroke-width="1.8"/>`;
+      [[36,52],[56,46],[76,30],[96,20]].forEach(p=> body+=`<circle cx="${p[0]}" cy="${p[1]}" r="2.2" fill="${A}"/>`);
+      break; }
+    case "epi_curve": {
+      body = ax; const h=[6,12,22,34,46,52,40,30,20,12]; h.forEach((v,i)=> body+=`<rect x="${16+i*9.6}" y="${68-v}" width="8.6" height="${v}" fill="${A}" opacity=".8" stroke="var(--bg-card)"/>`);
+      break; }
+    case "choropleth": {
+      const reg=[["M14 14 H50 V36 H30 V50 H14 Z",.35],["M50 14 H92 V30 H50 Z",.7],["M92 14 H110 V44 H92 Z",.5],["M30 36 H72 V60 H40 V50 H30 Z",.85],["M72 30 H110 V62 H72 Z",.45]];
+      reg.forEach(r=> body+=`<path d="${r[0]}" fill="${A}" opacity="${r[1]}" stroke="var(--bg-card)" stroke-width="1"/>`);
+      break; }
+    case "violin": {
+      const v=(x)=>`<path d="M${x} 14 C${x-12} 26, ${x-12} 40, ${x} 50 C${x+12} 40, ${x+12} 26, ${x} 14 Z" fill="${A}" opacity=".6" stroke="${A}"/><line x1="${x}" y1="16" x2="${x}" y2="60" stroke="${T}" stroke-width="1"/>`;
+      body = ax + v(36) + v(64) + v(92);
+      break; }
+    case "cumulative_incidence": {
+      body = ax + `<path d="M14 66 C36 60, 56 44, 80 30 S104 16, 110 12" fill="none" stroke="${A}" stroke-width="1.8"/><path d="M14 66 C40 62, 60 52, 84 44 S106 36, 110 34" fill="none" stroke="${G}" stroke-width="1.4" stroke-dasharray="3 2"/>`;
+      break; }
+    case "density": {
+      body = ax + `<path d="M14 68 C36 68, 40 18, 56 18 S76 68, 110 68 Z" fill="${A}" opacity=".25" stroke="${A}" stroke-width="1.6"/>`;
+      break; }
+    case "dose_response": {
+      body = ax + `<path d="M16 60 C40 58, 52 30, 70 26 S100 18, 110 14" fill="none" stroke="${A}" stroke-width="1.8"/>`;
+      [[16,60],[34,52],[52,34],[70,26],[88,20],[106,14]].forEach(p=> body+=`<circle cx="${p[0]}" cy="${p[1]}" r="2.2" fill="${A}"/>`);
+      break; }
+    case "lollipop": {
+      body = ax; const v=[[30,28],[48,44],[66,20],[84,52],[102,36]]; v.forEach(p=> body+=`<line x1="${p[0]}" y1="68" x2="${p[0]}" y2="${p[1]}" stroke="${G}" stroke-width="1.2"/><circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="${A}"/>`);
+      break; }
+    case "spaghetti": {
+      const paths=["M16,52 C40,48 60,40 110,30","M16,58 C40,40 60,52 110,22","M16,46 C40,54 60,34 110,40","M16,62 C40,56 60,48 110,44"];
+      body = ax; paths.forEach((d,i)=> body+=`<path d="${d}" fill="none" stroke="${i===0?A:G}" stroke-width="${i===0?1.8:1}" opacity="${i===0?1:.6}"/>`);
+      break; }
+    case "corr_matrix": {
+      const op=[1,.3,.6,.2,.3,1,.1,.7,.6,.1,1,.4,.2,.7,.4,1];
+      for(let r=0;r<4;r++)for(let c=0;c<4;c++){const val=op[r*4+c];body+=`<circle cx="${30+c*18}" cy="${18+r*15}" r="${3+val*4}" fill="${A}" opacity="${.3+val*.6}"/>`;}
+      break; }
+    case "pyramid": {
+      for(let i=0;i<5;i++){const w=10+i*6;const y=14+i*10;body+=`<rect x="${60-w}" y="${y}" width="${w-1}" height="8" fill="${A}" opacity=".8"/><rect x="61" y="${y}" width="${w-1}" height="8" fill="${G}" opacity=".7"/>`;}
+      break; }
+    case "ridgeline": {
+      for(let i=0;i<4;i++){const y=22+i*13;body+=`<path d="M14 ${y} C36 ${y}, 40 ${y-16} 56 ${y-16} S76 ${y}, 110 ${y} Z" fill="${A}" opacity="${.3+i*.12}" stroke="${A}" stroke-width="1"/>`;}
+      break; }
+    case "stacked_area": {
+      body = ax + `<path d="M14 68 L14 50 C40 46 70 40 110 34 L110 68 Z" fill="${A}" opacity=".7"/><path d="M14 50 C40 46 70 40 110 34 L110 22 C70 28 40 34 14 38 Z" fill="${A}" opacity=".35"/>`;
+      break; }
+    case "bland_altman": {
+      body = ax + `<line x1="14" y1="40" x2="112" y2="40" stroke="${A}" stroke-dasharray="3 2"/><line x1="14" y1="22" x2="112" y2="22" stroke="${G}" stroke-dasharray="2 2"/><line x1="14" y1="58" x2="112" y2="58" stroke="${G}" stroke-dasharray="2 2"/>`;
+      [[28,38],[40,44],[52,36],[64,42],[76,34],[88,46],[100,38],[46,30],[70,50]].forEach(p=> body+=`<circle cx="${p[0]}" cy="${p[1]}" r="2.2" fill="${A}" opacity=".8"/>`);
+      break; }
+    default:
+      body = `<rect x="20" y="20" width="80" height="40" fill="none" stroke="${G}" stroke-dasharray="3 2"/><text x="60" y="44" font-size="8" fill="${G}" text-anchor="middle">preview</text>`;
+  }
+  return open + body + "</svg>";
+}
+
+/* ============================================================
+   Default snippet library  (general d0xx + visualization v0xx)
+   ============================================================ */
+const T0 = Date.parse("2024-06-10T00:00:00Z");
+function ts(i){ return T0 + i*3600000; }  /* spread timestamps for stable sort */
+
+const DEFAULT_SNIPPETS = [
+  { id:"v001", category:"visualization", previewType:"forest_plot",
+    title:"Forest plot of effect estimates",
+    description:"Plot hazard/odds ratios with 95% CIs and a reference line at 1.",
+    tags:["ggplot2","forest plot","effect estimate"],
+    code:`library(ggplot2)
+
+df <- data.frame(
+  term = c("Age >65", "Male", "Diabetes", "Smoking"),
+  est  = c(1.42, 1.18, 1.86, 2.05),
+  lo   = c(1.10, 0.94, 1.40, 1.55),
+  hi   = c(1.83, 1.49, 2.47, 2.71)
+)
+df$term <- factor(df$term, levels = rev(df$term))
+
+ggplot(df, aes(est, term)) +
+  geom_vline(xintercept = 1, linetype = "dashed", colour = "grey50") +
+  geom_errorbarh(aes(xmin = lo, xmax = hi), height = 0.2) +
+  geom_point(size = 2.6) +
+  scale_x_log10() +
+  labs(x = "Hazard ratio (95% CI)", y = NULL) +
+  theme_minimal(base_size = 12)`,
+    created:ts(1), updated:ts(1) },
+
+  { id:"v002", category:"visualization", previewType:"km_curve",
+    title:"Kaplan-Meier survival curves",
+    description:"Survival curves by group using survminer.",
+    tags:["survival","kaplan-meier","survminer"],
+    code:`library(survival)
+library(survminer)
+
+fit <- survfit(Surv(time, status) ~ trt, data = df)
+
+ggsurvplot(fit, data = df,
+  conf.int   = TRUE,
+  risk.table = TRUE,
+  pval       = TRUE,
+  xlab = "Months", ylab = "Survival probability",
+  legend.labs = c("Control", "Treatment"))`,
+    created:ts(2), updated:ts(2) },
+
+  { id:"v003", category:"visualization", previewType:"scatter",
+    title:"Scatter plot with fitted line",
+    description:"Bivariate scatter with a linear fit and confidence band.",
+    tags:["ggplot2","scatter","regression"],
+    code:`library(ggplot2)
+
+ggplot(df, aes(bmi, sbp)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(x = "BMI", y = "Systolic BP (mmHg)") +
+  theme_minimal(base_size = 12)`,
+    created:ts(3), updated:ts(3) },
+
+  { id:"v004", category:"visualization", previewType:"heatmap",
+    title:"Correlation / value heatmap",
+    description:"Tile heatmap of a matrix of values with a continuous fill.",
+    tags:["ggplot2","heatmap","correlation"],
+    code:`library(ggplot2)
+library(reshape2)
+
+m <- round(cor(df[ , sapply(df, is.numeric)]), 2)
+mm <- melt(m)
+
+ggplot(mm, aes(Var1, Var2, fill = value)) +
+  geom_tile(colour = "white") +
+  geom_text(aes(label = value), size = 3) +
+  scale_fill_gradient2(low = "#b2182b", mid = "white", high = "#2166ac") +
+  labs(x = NULL, y = NULL, fill = "r") +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))`,
+    created:ts(4), updated:ts(4) },
+
+  { id:"v005", category:"visualization", previewType:"dag",
+    title:"Causal DAG with ggdag",
+    description:"Draw a directed acyclic graph of exposure, outcome and confounder.",
+    tags:["dagitty","ggdag","causal"],
+    code:`library(ggdag)
+library(dagitty)
+
+dag <- dagify(
+  outcome ~ exposure + confounder,
+  exposure ~ confounder,
+  exposure = "exposure", outcome = "outcome"
+)
+
+ggdag(dag, text = TRUE) +
+  theme_dag()`,
+    created:ts(5), updated:ts(5) },
+
+  { id:"v006", category:"visualization", previewType:"bar_chart",
+    title:"Grouped bar chart of proportions",
+    description:"Bar chart of counts or proportions by category.",
+    tags:["ggplot2","bar chart","descriptive"],
+    code:`library(ggplot2)
+
+ggplot(df, aes(group, fill = outcome)) +
+  geom_bar(position = "dodge") +
+  labs(x = NULL, y = "Count", fill = "Outcome") +
+  theme_minimal(base_size = 12)`,
+    created:ts(6), updated:ts(6) },
+
+  { id:"v007", category:"visualization", previewType:"line_trend",
+    title:"Time trend line chart",
+    description:"Plot a rate or count over calendar time.",
+    tags:["ggplot2","time series","trend"],
+    code:`library(ggplot2)
+
+ggplot(df, aes(year, rate)) +
+  geom_line(linewidth = 0.8) +
+  geom_point() +
+  labs(x = "Year", y = "Incidence rate / 100,000") +
+  theme_minimal(base_size = 12)`,
+    created:ts(7), updated:ts(7) },
+
+  { id:"v008", category:"visualization", previewType:"box_plot",
+    title:"Box plot by group",
+    description:"Distribution of a continuous variable across groups.",
+    tags:["ggplot2","box plot","distribution"],
+    code:`library(ggplot2)
+
+ggplot(df, aes(group, biomarker, fill = group)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  labs(x = NULL, y = "Biomarker level") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none")`,
+    created:ts(8), updated:ts(8) },
+
+  { id:"v009", category:"visualization", previewType:"histogram",
+    title:"Histogram with density overlay",
+    description:"Distribution of a continuous variable with optional density.",
+    tags:["ggplot2","histogram","distribution"],
+    code:`library(ggplot2)
+
+ggplot(df, aes(age)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 bins = 30, fill = "grey70", colour = "white") +
+  geom_density(linewidth = 0.8) +
+  labs(x = "Age", y = "Density") +
+  theme_minimal(base_size = 12)`,
+    created:ts(9), updated:ts(9) },
+
+  { id:"v010", category:"visualization", previewType:"funnel_plot",
+    title:"Funnel plot for publication bias",
+    description:"Funnel plot of effect size vs standard error with pseudo CIs.",
+    tags:["meta-analysis","funnel plot","metafor"],
+    code:`library(metafor)
+
+res <- rma(yi, vi, data = dat)
+funnel(res, xlab = "Log risk ratio")
+# Egger's test for asymmetry
+regtest(res)`,
+    created:ts(10), updated:ts(10) },
+
+  { id:"v011", category:"visualization", previewType:"roc_curve",
+    title:"ROC curve with AUC",
+    description:"Receiver operating characteristic curve using pROC.",
+    tags:["pROC","roc","diagnostics"],
+    code:`library(pROC)
+
+roc_obj <- roc(df$outcome, df$pred_prob)
+plot(roc_obj, print.auc = TRUE, legacy.axes = TRUE,
+     xlab = "1 - Specificity", ylab = "Sensitivity")
+auc(roc_obj)`,
+    created:ts(11), updated:ts(11) },
+
+  { id:"v012", category:"visualization", previewType:"calibration",
+    title:"Calibration plot for risk models",
+    description:"Observed vs predicted risk by decile of predicted probability.",
+    tags:["prediction","calibration","validation"],
+    code:`library(ggplot2)
+library(dplyr)
+
+cal <- df %>%
+  mutate(bin = ntile(pred, 10)) %>%
+  group_by(bin) %>%
+  summarise(pred = mean(pred), obs = mean(outcome))
+
+ggplot(cal, aes(pred, obs)) +
+  geom_abline(linetype = "dashed", colour = "grey50") +
+  geom_line() + geom_point() +
+  coord_equal(xlim = c(0,1), ylim = c(0,1)) +
+  labs(x = "Predicted risk", y = "Observed risk") +
+  theme_minimal(base_size = 12)`,
+    created:ts(12), updated:ts(12) },
+
+  { id:"v013", category:"visualization", previewType:"epi_curve",
+    title:"Epidemic curve",
+    description:"Histogram of case onset dates over an outbreak.",
+    tags:["outbreak","epi curve","incidence"],
+    code:`library(ggplot2)
+
+ggplot(cases, aes(onset_date)) +
+  geom_histogram(binwidth = 1, fill = "#4A7C4F", colour = "white") +
+  labs(x = "Date of symptom onset", y = "Number of cases") +
+  theme_minimal(base_size = 12)`,
+    created:ts(13), updated:ts(13) },
+
+  { id:"v014", category:"visualization", previewType:"choropleth",
+    title:"Choropleth map of rates",
+    description:"Map regional rates using sf and geom_sf.",
+    tags:["sf","choropleth","spatial"],
+    code:`library(sf)
+library(ggplot2)
+
+map <- left_join(regions_sf, rates, by = "region_id")
+
+ggplot(map) +
+  geom_sf(aes(fill = rate), colour = "white", linewidth = 0.1) +
+  scale_fill_viridis_c(option = "magma") +
+  labs(fill = "Rate / 100k") +
+  theme_void()`,
+    created:ts(14), updated:ts(14) },
+
+  { id:"v015", category:"visualization", previewType:"violin",
+    title:"Violin plot by group",
+    description:"Density shape of a continuous variable across groups.",
+    tags:["ggplot2","violin","distribution"],
+    code:`library(ggplot2)
+
+ggplot(df, aes(group, value, fill = group)) +
+  geom_violin(trim = FALSE, alpha = 0.6) +
+  geom_boxplot(width = 0.1, outlier.shape = NA) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none")`,
+    created:ts(15), updated:ts(15) },
+
+  { id:"v016", category:"visualization", previewType:"cumulative_incidence",
+    title:"Cumulative incidence function",
+    description:"Competing-risks cumulative incidence with cmprsk / tidycmprsk.",
+    tags:["survival","competing risks","cumulative incidence"],
+    code:`library(tidycmprsk)
+library(ggsurvfit)
+
+cuminc(Surv(time, status) ~ group, data = df) %>%
+  ggcuminc() +
+  labs(x = "Months", y = "Cumulative incidence") +
+  add_confidence_interval() +
+  theme_minimal(base_size = 12)`,
+    created:ts(16), updated:ts(16) },
+
+  { id:"v017", category:"visualization", previewType:"density",
+    title:"Density plot",
+    description:"Smoothed density of a continuous variable, optionally by group.",
+    tags:["ggplot2","density","distribution"],
+    code:`library(ggplot2)
+
+ggplot(df, aes(value, fill = group)) +
+  geom_density(alpha = 0.4) +
+  labs(x = "Value", y = "Density", fill = NULL) +
+  theme_minimal(base_size = 12)`,
+    created:ts(17), updated:ts(17) },
+
+  { id:"v018", category:"visualization", previewType:"dose_response",
+    title:"Dose-response curve",
+    description:"Restricted cubic spline of exposure vs predicted risk.",
+    tags:["splines","dose-response","rms"],
+    code:`library(rms)
+
+dd <- datadist(df); options(datadist = "dd")
+fit <- lrm(outcome ~ rcs(dose, 4) + age + sex, data = df)
+
+p <- Predict(fit, dose, fun = plogis)
+ggplot(p) +
+  labs(x = "Dose", y = "Predicted risk") +
+  theme_minimal(base_size = 12)`,
+    created:ts(18), updated:ts(18) },
+
+  { id:"v019", category:"visualization", previewType:"lollipop",
+    title:"Lollipop chart",
+    description:"Ranked categorical values as a clean alternative to bars.",
+    tags:["ggplot2","lollipop","descriptive"],
+    code:`library(ggplot2)
+library(dplyr)
+
+df <- df %>% arrange(value) %>% mutate(cat = factor(cat, levels = cat))
+
+ggplot(df, aes(value, cat)) +
+  geom_segment(aes(x = 0, xend = value, yend = cat), colour = "grey70") +
+  geom_point(size = 3, colour = "#4A7C4F") +
+  labs(x = "Value", y = NULL) +
+  theme_minimal(base_size = 12)`,
+    created:ts(19), updated:ts(19) },
+
+  { id:"v020", category:"visualization", previewType:"spaghetti",
+    title:"Spaghetti plot of trajectories",
+    description:"Individual longitudinal trajectories with a mean overlay.",
+    tags:["ggplot2","longitudinal","trajectory"],
+    code:`library(ggplot2)
+
+ggplot(long, aes(time, value, group = id)) +
+  geom_line(alpha = 0.2) +
+  stat_summary(aes(group = 1), fun = mean, geom = "line",
+               colour = "#4A7C4F", linewidth = 1.2) +
+  labs(x = "Visit", y = "Measurement") +
+  theme_minimal(base_size = 12)`,
+    created:ts(20), updated:ts(20) },
+
+  { id:"v021", category:"visualization", previewType:"corr_matrix",
+    title:"Correlation matrix bubble plot",
+    description:"Correlations shown as sized/coloured points with ggcorrplot.",
+    tags:["ggcorrplot","correlation","matrix"],
+    code:`library(ggcorrplot)
+
+corr <- cor(df[ , sapply(df, is.numeric)], use = "pairwise")
+ggcorrplot(corr, method = "circle", type = "lower",
+           lab = FALSE, colors = c("#b2182b", "white", "#2166ac"))`,
+    created:ts(21), updated:ts(21) },
+
+  { id:"v022", category:"visualization", previewType:"pyramid",
+    title:"Population pyramid",
+    description:"Age-sex pyramid of a study population.",
+    tags:["ggplot2","pyramid","demography"],
+    code:`library(ggplot2)
+
+ggplot(pop, aes(x = age_group,
+                y = ifelse(sex == "Male", -n, n), fill = sex)) +
+  geom_col() +
+  coord_flip() +
+  scale_y_continuous(labels = abs) +
+  labs(x = "Age group", y = "Count", fill = NULL) +
+  theme_minimal(base_size = 12)`,
+    created:ts(22), updated:ts(22) },
+
+  { id:"v023", category:"visualization", previewType:"ridgeline",
+    title:"Ridgeline distribution plot",
+    description:"Stacked densities across groups with ggridges.",
+    tags:["ggridges","ridgeline","distribution"],
+    code:`library(ggplot2)
+library(ggridges)
+
+ggplot(df, aes(x = value, y = group, fill = group)) +
+  geom_density_ridges(alpha = 0.7, scale = 1.5) +
+  labs(x = "Value", y = NULL) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none")`,
+    created:ts(23), updated:ts(23) },
+
+  { id:"v024", category:"visualization", previewType:"stacked_area",
+    title:"Stacked area chart",
+    description:"Composition over time as stacked areas.",
+    tags:["ggplot2","area","time series"],
+    code:`library(ggplot2)
+
+ggplot(df, aes(year, n, fill = subtype)) +
+  geom_area(position = "stack", alpha = 0.85) +
+  labs(x = "Year", y = "Cases", fill = NULL) +
+  theme_minimal(base_size = 12)`,
+    created:ts(24), updated:ts(24) },
+
+  { id:"v025", category:"visualization", previewType:"bland_altman",
+    title:"Bland-Altman agreement plot",
+    description:"Difference vs mean of two measurements with limits of agreement.",
+    tags:["agreement","bland-altman","method comparison"],
+    code:`library(ggplot2)
+
+df$mean_m <- (df$m1 + df$m2) / 2
+df$diff_m <- df$m1 - df$m2
+md <- mean(df$diff_m); sd_d <- sd(df$diff_m)
+
+ggplot(df, aes(mean_m, diff_m)) +
+  geom_point(alpha = 0.5) +
+  geom_hline(yintercept = md, colour = "#4A7C4F") +
+  geom_hline(yintercept = md + 1.96*sd_d, linetype = "dashed") +
+  geom_hline(yintercept = md - 1.96*sd_d, linetype = "dashed") +
+  labs(x = "Mean of methods", y = "Difference") +
+  theme_minimal(base_size = 12)`,
+    created:ts(25), updated:ts(25) },
+
+  /* ---- Setup & environment ---- */
+  { id:"d001", category:"setup", title:"Load core epi packages",
+    description:"Quietly load the workhorse packages for a typical analysis.",
+    tags:["setup","tidyverse","packages"],
+    code:`pkgs <- c("tidyverse", "data.table", "survival", "broom",
+          "gtsummary", "lubridate", "here")
+to_install <- setdiff(pkgs, rownames(installed.packages()))
+if (length(to_install)) install.packages(to_install)
+invisible(lapply(pkgs, library, character.only = TRUE))`,
+    created:ts(26), updated:ts(26) },
+  { id:"d002", category:"setup", title:"Reproducible project setup",
+    description:"Set seed, options and a here()-based project root.",
+    tags:["setup","reproducibility","here"],
+    code:`set.seed(20240601)
+options(stringsAsFactors = FALSE, scipen = 999, digits = 4)
+library(here)
+data_dir <- here("data")
+out_dir  <- here("output"); dir.create(out_dir, showWarnings = FALSE)`,
+    created:ts(27), updated:ts(27) },
+  { id:"d003", category:"setup", title:"Session info for the appendix",
+    description:"Capture package versions for reproducibility reporting.",
+    tags:["setup","sessioninfo","reproducibility"],
+    code:`library(sessioninfo)
+session_info(to_file = here::here("output", "session_info.txt"))
+# or in base R:
+writeLines(capture.output(sessionInfo()),
+           here::here("output", "sessionInfo.txt"))`,
+    created:ts(28), updated:ts(28) },
+
+  /* ---- Data import ---- */
+  { id:"d004", category:"import", title:"Read a large CSV fast",
+    description:"Use data.table::fread for speed and sensible defaults.",
+    tags:["import","data.table","csv"],
+    code:`library(data.table)
+dt <- fread(here::here("data", "cohort.csv"),
+            na.strings = c("", "NA", "."),
+            colClasses = list(character = "patient_id"))
+dat <- as_tibble(dt)`,
+    created:ts(29), updated:ts(29) },
+  { id:"d005", category:"import", title:"Import SAS / Stata / SPSS",
+    description:"Read common statistical formats with haven.",
+    tags:["import","haven","sas"],
+    code:`library(haven)
+sas   <- read_sas("data/cohort.sas7bdat")
+stata <- read_dta("data/cohort.dta")
+spss  <- read_sav("data/cohort.sav")
+# Convert labelled vectors to factors
+sas <- haven::as_factor(sas)`,
+    created:ts(30), updated:ts(30) },
+  { id:"d006", category:"import", title:"Query a clinical database",
+    description:"Pull a cohort from SQL with DBI, collecting into a tibble.",
+    tags:["import","DBI","sql"],
+    code:`library(DBI)
+con <- dbConnect(odbc::odbc(), "warehouse")
+
+cohort <- dbGetQuery(con, "
+  SELECT patient_id, dob, sex, index_date
+  FROM   cohort
+  WHERE  index_date BETWEEN '2015-01-01' AND '2020-12-31'
+") |> tibble::as_tibble()
+
+dbDisconnect(con)`,
+    created:ts(31), updated:ts(31) },
+
+  /* ---- Data cleaning ---- */
+  { id:"d007", category:"cleaning", title:"Standardise variable names",
+    description:"Snake_case all columns and trim whitespace in characters.",
+    tags:["cleaning","janitor","tidyverse"],
+    code:`library(dplyr)
+library(janitor)
+dat <- dat |>
+  clean_names() |>
+  mutate(across(where(is.character), ~ trimws(.x)))`,
+    created:ts(32), updated:ts(32) },
+  { id:"d008", category:"cleaning", title:"Parse and validate dates",
+    description:"Coerce date strings and flag implausible values.",
+    tags:["cleaning","lubridate","dates"],
+    code:`library(lubridate)
+library(dplyr)
+dat <- dat |>
+  mutate(
+    dob        = ymd(dob),
+    index_date = ymd(index_date),
+    bad_date   = index_date < dob | index_date > today()
+  )
+sum(dat$bad_date, na.rm = TRUE)`,
+    created:ts(33), updated:ts(33) },
+  { id:"d009", category:"cleaning", title:"Recode missing and sentinel values",
+    description:"Replace coded missings (e.g. 999) and tidy factors.",
+    tags:["cleaning","missing","recode"],
+    code:`library(dplyr)
+dat <- dat |>
+  mutate(
+    sbp = na_if(sbp, 999),
+    sex = factor(sex, levels = c(1, 2), labels = c("Male", "Female")),
+    smoke = fct_na_value_to_level(smoke, "Unknown")
+  )`,
+    created:ts(34), updated:ts(34) },
+  { id:"d010", category:"cleaning", title:"Summarise missingness",
+    description:"Tabulate the proportion missing per variable.",
+    tags:["cleaning","missing","naniar"],
+    code:`library(dplyr)
+miss <- dat |>
+  summarise(across(everything(), ~ mean(is.na(.x)))) |>
+  tidyr::pivot_longer(everything(),
+                      names_to = "var", values_to = "pct_missing") |>
+  arrange(desc(pct_missing))
+print(miss, n = Inf)`,
+    created:ts(35), updated:ts(35) },
+
+  /* ---- Cohort construction ---- */
+  { id:"d011", category:"cohort", title:"Apply inclusion/exclusion with a flow count",
+    description:"Build a cohort step by step and record attrition counts.",
+    tags:["cohort","attrition","flowchart"],
+    code:`library(dplyr)
+flow <- list()
+co <- raw;                         flow$initial      <- nrow(co)
+co <- filter(co, age >= 18);       flow$adults       <- nrow(co)
+co <- filter(co, !is.na(index_date)); flow$has_index <- nrow(co)
+co <- filter(co, lookback_days >= 365); flow$enrolled <- nrow(co)
+tibble::enframe(unlist(flow), "step", "n")`,
+    created:ts(36), updated:ts(36) },
+  { id:"d012", category:"cohort", title:"New-user (incident) design",
+    description:"Restrict to first-ever users with a washout window.",
+    tags:["cohort","new-user","washout"],
+    code:`library(dplyr)
+new_users <- rx |>
+  arrange(patient_id, dispense_date) |>
+  group_by(patient_id) |>
+  filter(dispense_date == min(dispense_date)) |>
+  ungroup() |>
+  filter(washout_days >= 365)   # no prior use in 12 months`,
+    created:ts(37), updated:ts(37) },
+  { id:"d013", category:"cohort", title:"Compute follow-up time",
+    description:"Derive person-time to the earliest censoring event.",
+    tags:["cohort","follow-up","person-time"],
+    code:`library(dplyr)
+cohort <- cohort |>
+  mutate(
+    end_date = pmin(event_date, death_date, disenroll_date,
+                    study_end, na.rm = TRUE),
+    fu_years = as.numeric(end_date - index_date) / 365.25,
+    event    = as.integer(!is.na(event_date) & event_date == end_date)
+  )`,
+    created:ts(38), updated:ts(38) },
+
+  /* ---- Exposure & outcome ---- */
+  { id:"d014", category:"exposure", title:"Define exposure from medication codes",
+    description:"Flag exposure using a code list join.",
+    tags:["exposure","codelist","medications"],
+    code:`library(dplyr)
+exposed_ids <- rx |>
+  semi_join(drug_codes, by = "atc_code") |>
+  distinct(patient_id) |>
+  pull(patient_id)
+
+cohort <- cohort |>
+  mutate(exposed = patient_id %in% exposed_ids)`,
+    created:ts(39), updated:ts(39) },
+  { id:"d015", category:"exposure", title:"Outcome from diagnosis codes",
+    description:"Identify first qualifying outcome event after index.",
+    tags:["exposure","outcome","ICD"],
+    code:`library(dplyr)
+outcomes <- dx |>
+  inner_join(outcome_codes, by = "icd10") |>
+  filter(dx_date > index_date) |>
+  group_by(patient_id) |>
+  summarise(event_date = min(dx_date), .groups = "drop")
+
+cohort <- left_join(cohort, outcomes, by = "patient_id")`,
+    created:ts(40), updated:ts(40) },
+  { id:"d016", category:"exposure", title:"Time-varying exposure intervals",
+    description:"Build treatment episodes with grace periods using tidyr.",
+    tags:["exposure","time-varying","episodes"],
+    code:`library(dplyr)
+episodes <- rx |>
+  arrange(patient_id, dispense_date) |>
+  group_by(patient_id) |>
+  mutate(
+    end       = dispense_date + days_supply + 30,   # 30-day grace
+    new_epi   = dispense_date > lag(cummax(as.numeric(end)), default = -Inf),
+    episode   = cumsum(replace_na(new_epi, TRUE))
+  ) |>
+  group_by(patient_id, episode) |>
+  summarise(start = min(dispense_date), stop = max(end), .groups = "drop")`,
+    created:ts(41), updated:ts(41) },
+
+  /* ---- Causal inference & design ---- */
+  { id:"d017", category:"causal", title:"Identify adjustment set from a DAG",
+    description:"Use dagitty to find a minimal sufficient adjustment set.",
+    tags:["causal","dagitty","confounding"],
+    code:`library(dagitty)
+g <- dagitty('dag {
+  exposure -> outcome
+  confounder -> exposure
+  confounder -> outcome
+  exposure [exposure]
+  outcome [outcome]
+}')
+adjustmentSets(g, type = "minimal")`,
+    created:ts(42), updated:ts(42) },
+  { id:"d018", category:"causal", title:"Target trial emulation skeleton",
+    description:"Lay out the protocol elements as a checklist tibble.",
+    tags:["causal","target trial","design"],
+    code:`protocol <- tibble::tribble(
+  ~element,              ~specification,
+  "Eligibility",         "Adults, new users, 12m baseline",
+  "Treatment strategies","Initiate A vs initiate B",
+  "Assignment",          "Emulated via PS / IPTW",
+  "Time zero",           "Date of first dispensing",
+  "Outcome",             "First MI within 5y",
+  "Causal contrast",     "Intention-to-treat / per-protocol",
+  "Analysis",            "Weighted pooled logistic / Cox"
+)
+protocol`,
+    created:ts(43), updated:ts(43) },
+  { id:"d019", category:"causal", title:"IPTW with stabilised weights",
+    description:"Estimate a marginal effect via inverse-probability weighting.",
+    tags:["causal","iptw","weights"],
+    code:`library(dplyr)
+ps  <- glm(exposed ~ age + sex + comorb, family = binomial, data = dat)
+dat <- dat |>
+  mutate(
+    p_ex = predict(ps, type = "response"),
+    p_tr = mean(exposed),
+    sw   = if_else(exposed == 1, p_tr / p_ex, (1 - p_tr) / (1 - p_ex))
+  )
+library(survey)
+des <- svydesign(~1, weights = ~sw, data = dat)
+svyglm(outcome ~ exposed, design = des, family = quasibinomial())`,
+    created:ts(44), updated:ts(44) },
+
+  /* ---- Confounding & bias ---- */
+  { id:"d020", category:"confounding", title:"Standardised mean differences",
+    description:"Check covariate balance before/after weighting.",
+    tags:["confounding","balance","smd"],
+    code:`library(tableone)
+vars <- c("age", "sex", "comorb", "baseline_sbp")
+tab  <- CreateTableOne(vars = vars, strata = "exposed",
+                       data = dat, test = FALSE)
+print(tab, smd = TRUE)`,
+    created:ts(45), updated:ts(45) },
+  { id:"d021", category:"confounding", title:"E-value for unmeasured confounding",
+    description:"Quantify robustness of an estimate to unmeasured confounding.",
+    tags:["confounding","e-value","sensitivity"],
+    code:`library(EValue)
+# point estimate and CI on the risk-ratio scale
+evalues.RR(est = 1.65, lo = 1.20, hi = 2.27)`,
+    created:ts(46), updated:ts(46) },
+  { id:"d022", category:"confounding", title:"Quantitative bias analysis (misclassification)",
+    description:"Adjust a 2x2 estimate for exposure misclassification.",
+    tags:["confounding","bias analysis","episensr"],
+    code:`library(episensr)
+m <- matrix(c(215, 1449, 668, 4296), nrow = 2, byrow = TRUE)
+misclassification(m,
+  type = "exposure",
+  bias_parms = c(0.78, 0.78, 0.99, 0.99))  # Se/Sp by outcome`,
+    created:ts(47), updated:ts(47) },
+
+  /* ---- Matching ---- */
+  { id:"d023", category:"matching", title:"Propensity score matching",
+    description:"1:1 nearest-neighbour PS matching with MatchIt.",
+    tags:["matching","propensity","MatchIt"],
+    code:`library(MatchIt)
+m.out <- matchit(exposed ~ age + sex + comorb + baseline_sbp,
+                 data = dat, method = "nearest",
+                 distance = "glm", caliper = 0.2, ratio = 1)
+summary(m.out)
+matched <- match.data(m.out)`,
+    created:ts(48), updated:ts(48) },
+  { id:"d024", category:"matching", title:"Exact / coarsened exact matching",
+    description:"Balance on exact strata using cem in MatchIt.",
+    tags:["matching","cem","exact"],
+    code:`library(MatchIt)
+m.cem <- matchit(exposed ~ age_cat + sex + region,
+                 data = dat, method = "cem")
+summary(m.cem)
+matched <- match.data(m.cem)   # includes CEM weights`,
+    created:ts(49), updated:ts(49) },
+
+  /* ---- Self-controlled designs ---- */
+  { id:"d025", category:"selfcontrolled", title:"Self-controlled case series (SCCS)",
+    description:"Fit an SCCS model with the SCCS package.",
+    tags:["selfcontrolled","sccs","vaccine safety"],
+    code:`library(SCCS)
+fit <- standardsccs(event ~ exposure,
+                    indiv = patient_id,
+                    astart = obs_start, aend = obs_end,
+                    aevent = event_day,
+                    adrug = exp_start, aedrug = exp_end,
+                    data = sccs_data)
+summary(fit)`,
+    created:ts(50), updated:ts(50) },
+  { id:"d026", category:"selfcontrolled", title:"Case-crossover analysis",
+    description:"Conditional logistic regression for transient exposures.",
+    tags:["selfcontrolled","case-crossover","clogit"],
+    code:`library(survival)
+fit <- clogit(case ~ exposed + strata(patient_id),
+              data = cc_data)
+summary(fit)`,
+    created:ts(51), updated:ts(51) },
+
+  /* ---- Descriptive analysis ---- */
+  { id:"d027", category:"descriptive", title:"Table 1 of baseline characteristics",
+    description:"Publication-ready Table 1 stratified by exposure.",
+    tags:["descriptive","table1","gtsummary"],
+    code:`library(gtsummary)
+dat |>
+  select(age, sex, comorb, baseline_sbp, exposed) |>
+  tbl_summary(by = exposed,
+              statistic = list(all_continuous() ~ "{mean} ({sd})")) |>
+  add_p() |>
+  add_overall()`,
+    created:ts(52), updated:ts(52) },
+  { id:"d028", category:"descriptive", title:"Incidence rates with CIs",
+    description:"Compute crude incidence rates per 1000 person-years.",
+    tags:["descriptive","incidence","person-time"],
+    code:`library(dplyr)
+dat |>
+  group_by(exposed) |>
+  summarise(events = sum(event),
+            pyears = sum(fu_years), .groups = "drop") |>
+  mutate(rate = 1000 * events / pyears,
+         lo   = 1000 * qchisq(0.025, 2*events)/2 / pyears,
+         hi   = 1000 * qchisq(0.975, 2*(events+1))/2 / pyears)`,
+    created:ts(53), updated:ts(53) },
+  { id:"d029", category:"descriptive", title:"Age-standardised rates",
+    description:"Direct standardisation to a reference population.",
+    tags:["descriptive","standardisation","rates"],
+    code:`library(dplyr)
+std <- rates |>
+  left_join(ref_pop, by = "age_group") |>
+  summarise(
+    asr = 1e5 * sum(events / pyears * std_weight) / sum(std_weight)
+  )
+std`,
+    created:ts(54), updated:ts(54) },
+
+  /* ---- Survival analysis ---- */
+  { id:"d030", category:"survival", title:"Cox proportional hazards model",
+    description:"Fit and tidy a multivariable Cox model.",
+    tags:["survival","cox","broom"],
+    code:`library(survival)
+library(broom)
+fit <- coxph(Surv(fu_years, event) ~ exposed + age + sex + comorb,
+             data = dat)
+tidy(fit, exponentiate = TRUE, conf.int = TRUE)`,
+    created:ts(55), updated:ts(55) },
+  { id:"d031", category:"survival", title:"Test proportional hazards",
+    description:"Schoenfeld residual test and plot.",
+    tags:["survival","proportional hazards","diagnostics"],
+    code:`library(survival)
+zph <- cox.zph(fit)
+print(zph)
+plot(zph, var = "exposed")`,
+    created:ts(56), updated:ts(56) },
+  { id:"d032", category:"survival", title:"Fine-Gray competing-risks model",
+    description:"Subdistribution hazard model with cmprsk.",
+    tags:["survival","competing risks","fine-gray"],
+    code:`library(cmprsk)
+cov <- model.matrix(~ exposed + age + sex, data = dat)[, -1]
+fg  <- crr(ftime = dat$fu_years, fstatus = dat$status,
+           cov1 = cov, failcode = 1, cencode = 0)
+summary(fg)`,
+    created:ts(57), updated:ts(57) },
+
+  /* ---- Regression & inference ---- */
+  { id:"d033", category:"regression", title:"Logistic regression with tidy output",
+    description:"Odds ratios with 95% CIs from a logistic model.",
+    tags:["regression","logistic","broom"],
+    code:`library(broom)
+fit <- glm(outcome ~ exposed + age + sex + comorb,
+           data = dat, family = binomial)
+tidy(fit, exponentiate = TRUE, conf.int = TRUE)`,
+    created:ts(58), updated:ts(58) },
+  { id:"d034", category:"regression", title:"Poisson / negative-binomial rates",
+    description:"Rate ratios with an offset for person-time.",
+    tags:["regression","poisson","rates"],
+    code:`library(MASS)
+fit <- glm.nb(events ~ exposed + age + offset(log(pyears)),
+              data = dat)
+exp(cbind(RR = coef(fit), confint(fit)))`,
+    created:ts(59), updated:ts(59) },
+  { id:"d035", category:"regression", title:"Robust / clustered standard errors",
+    description:"Sandwich SEs clustered by site.",
+    tags:["regression","robust se","sandwich"],
+    code:`library(sandwich)
+library(lmtest)
+fit <- glm(outcome ~ exposed + age, data = dat, family = binomial)
+coeftest(fit, vcov = vcovCL, cluster = ~ site)`,
+    created:ts(60), updated:ts(60) },
+
+  /* ---- Longitudinal & panel ---- */
+  { id:"d036", category:"longitudinal", title:"Linear mixed model",
+    description:"Random intercept and slope for repeated measures.",
+    tags:["longitudinal","mixed model","lme4"],
+    code:`library(lme4)
+library(broom.mixed)
+fit <- lmer(value ~ time * group + (time | patient_id), data = long)
+tidy(fit, conf.int = TRUE)`,
+    created:ts(61), updated:ts(61) },
+  { id:"d037", category:"longitudinal", title:"GEE for correlated outcomes",
+    description:"Population-averaged model with an exchangeable structure.",
+    tags:["longitudinal","gee","geepack"],
+    code:`library(geepack)
+fit <- geeglm(outcome ~ time + group, id = patient_id,
+              family = binomial, corstr = "exchangeable",
+              data = long)
+summary(fit)`,
+    created:ts(62), updated:ts(62) },
+
+  /* ---- Screening & diagnostics ---- */
+  { id:"d038", category:"screening", title:"Diagnostic accuracy measures",
+    description:"Sensitivity, specificity and predictive values from a 2x2.",
+    tags:["screening","sensitivity","diagnostics"],
+    code:`library(epiR)
+tab <- matrix(c(TP, FP, FN, TN), nrow = 2, byrow = TRUE)
+epi.tests(tab, conf.level = 0.95)`,
+    created:ts(63), updated:ts(63) },
+  { id:"d039", category:"screening", title:"Optimal threshold (Youden)",
+    description:"Choose a cut-point maximising Youden's J.",
+    tags:["screening","threshold","pROC"],
+    code:`library(pROC)
+roc_obj <- roc(df$disease, df$marker)
+coords(roc_obj, "best", best.method = "youden",
+       ret = c("threshold", "sensitivity", "specificity"))`,
+    created:ts(64), updated:ts(64) },
+
+  /* ---- Prediction modeling ---- */
+  { id:"d040", category:"prediction", title:"Cross-validated model with tidymodels",
+    description:"Logistic workflow with 10-fold CV and ROC AUC.",
+    tags:["prediction","tidymodels","cross-validation"],
+    code:`library(tidymodels)
+folds <- vfold_cv(train, v = 10, strata = outcome)
+rec   <- recipe(outcome ~ ., data = train) |> step_normalize(all_numeric_predictors())
+spec  <- logistic_reg() |> set_engine("glm")
+wf    <- workflow() |> add_recipe(rec) |> add_model(spec)
+fit_rs <- fit_resamples(wf, folds, metrics = metric_set(roc_auc, brier_class))
+collect_metrics(fit_rs)`,
+    created:ts(65), updated:ts(65) },
+  { id:"d041", category:"prediction", title:"Bootstrap optimism correction",
+    description:"Internal validation of a model with rms::validate.",
+    tags:["prediction","validation","rms"],
+    code:`library(rms)
+dd <- datadist(train); options(datadist = "dd")
+fit <- lrm(outcome ~ age + sex + biomarker, data = train, x = TRUE, y = TRUE)
+validate(fit, method = "boot", B = 200)   # optimism-corrected C, slope`,
+    created:ts(66), updated:ts(66) },
+
+  /* ---- Meta-analysis ---- */
+  { id:"d042", category:"meta", title:"Random-effects meta-analysis",
+    description:"Pool study estimates with metafor and report I^2.",
+    tags:["meta-analysis","metafor","random effects"],
+    code:`library(metafor)
+res <- rma(yi = logRR, sei = se, data = studies, method = "REML")
+summary(res)              # pooled estimate, tau^2, I^2
+predict(res, transf = exp)`,
+    created:ts(67), updated:ts(67) },
+  { id:"d043", category:"meta", title:"Meta-regression by covariate",
+    description:"Explore heterogeneity with a study-level moderator.",
+    tags:["meta-analysis","meta-regression","heterogeneity"],
+    code:`library(metafor)
+res <- rma(yi = logRR, sei = se, mods = ~ mean_age + region,
+           data = studies, method = "REML")
+summary(res)`,
+    created:ts(68), updated:ts(68) },
+
+  /* ---- Spatial epidemiology ---- */
+  { id:"d044", category:"spatial", title:"Spatial join of points to areas",
+    description:"Assign point locations to administrative regions with sf.",
+    tags:["spatial","sf","join"],
+    code:`library(sf)
+pts <- st_as_sf(cases, coords = c("lon", "lat"), crs = 4326)
+pts <- st_transform(pts, st_crs(regions))
+cases_geo <- st_join(pts, regions["region_id"], join = st_within)`,
+    created:ts(69), updated:ts(69) },
+  { id:"d045", category:"spatial", title:"Moran's I spatial autocorrelation",
+    description:"Test for spatial clustering of area rates.",
+    tags:["spatial","moran","autocorrelation"],
+    code:`library(spdep)
+nb <- poly2nb(regions)
+lw <- nb2listw(nb, style = "W", zero.policy = TRUE)
+moran.test(regions$rate, lw, zero.policy = TRUE)`,
+    created:ts(70), updated:ts(70) },
+
+  /* ---- Genomic & molecular epi ---- */
+  { id:"d046", category:"genomic", title:"GWAS-style association scan",
+    description:"Per-variant logistic association with an additive model.",
+    tags:["genomic","gwas","association"],
+    code:`library(dplyr)
+library(broom)
+results <- purrr::map_dfr(snp_cols, function(snp) {
+  f   <- reformulate(c(snp, "age", "sex", "PC1", "PC2"), "case")
+  fit <- glm(f, data = geno, family = binomial)
+  tidy(fit) |> filter(term == snp) |> mutate(snp = snp)
+})
+results |> arrange(p.value)`,
+    created:ts(71), updated:ts(71) },
+
+  /* ---- Reporting ---- */
+  { id:"d047", category:"reporting", title:"STROBE-style regression table",
+    description:"Merge unadjusted and adjusted models into one gt table.",
+    tags:["reporting","gtsummary","strobe"],
+    code:`library(gtsummary)
+uni <- tbl_uvregression(dat, method = glm, y = outcome,
+                        method.args = list(family = binomial),
+                        exponentiate = TRUE)
+multi <- glm(outcome ~ exposed + age + sex + comorb,
+             data = dat, family = binomial) |>
+  tbl_regression(exponentiate = TRUE)
+tbl_merge(list(uni, multi),
+          tab_spanner = c("**Unadjusted**", "**Adjusted**"))`,
+    created:ts(72), updated:ts(72) },
+
+];
+
+/* ============================================================
+   Storage layer
+   ============================================================ */
+const STORE_KEY = "r-snippets-v4";
+const THEME_KEY = "r-snippets-theme";
+
+function loadSnippets() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) { saveSnippets(DEFAULT_SNIPPETS); return DEFAULT_SNIPPETS.slice(); }
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) throw new Error("bad");
+    return arr;
+  } catch (e) {
+    return DEFAULT_SNIPPETS.slice();
+  }
+}
+function saveSnippets(arr) {
+  localStorage.setItem(STORE_KEY, JSON.stringify(arr));
+}
+
+/* ============================================================
+   App state
+   ============================================================ */
+let snippets = loadSnippets();
+let state = { activeCategory: null, activeTag: null, query: "", sort: "newest" };
+
+/* ---- helpers ---- */
+function uid() { return "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+
+function getFiltered() {
+  const q = state.query.trim().toLowerCase();
+  let out = snippets.filter(s => {
+    if (state.activeCategory && s.category !== state.activeCategory) return false;
+    if (state.activeTag && !(s.tags || []).map(t => t.toLowerCase()).includes(state.activeTag.toLowerCase())) return false;
+    if (q) {
+      const hay = (s.title + " " + (s.description||"") + " " + s.code + " " + (s.tags||[]).join(" ")).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  switch (state.sort) {
+    case "az": out.sort((a,b)=> a.title.localeCompare(b.title)); break;
+    case "updated": out.sort((a,b)=> (b.updated||0)-(a.updated||0)); break;
+    case "category": out.sort((a,b)=> (CAT_LABEL[a.category]||a.category).localeCompare(CAT_LABEL[b.category]||b.category) || a.title.localeCompare(b.title)); break;
+    default: out.sort((a,b)=> (b.created||0)-(a.created||0));
+  }
+  return out;
+}
+
+/* ============================================================
+   Rendering
+   ============================================================ */
+function renderSidebar() {
+  const counts = {};
+  snippets.forEach(s => counts[s.category] = (counts[s.category]||0)+1);
+  let html = `<button class="nav-item ${!state.activeCategory && !state.activeTag ? "active":""}" data-cat="__all__">
+      <span>All snippets</span><span class="count">${snippets.length}</span></button>`;
+  SECTIONS.forEach(sec => {
+    html += `<div class="nav-section"><h3>${esc(sec.name)}</h3>`;
+    sec.cats.forEach(([id,label]) => {
+      const c = counts[id]||0;
+      html += `<button class="nav-item ${state.activeCategory===id?"active":""}" data-cat="${id}">
+        <span>${esc(label)}</span><span class="count">${c}</span></button>`;
+    });
+    html += `</div>`;
+  });
+
+  /* Tag browser */
+  const tagCounts = {};
+  snippets.forEach(s => (s.tags||[]).forEach(t => tagCounts[t] = (tagCounts[t]||0)+1));
+  const tags = Object.keys(tagCounts).sort((a,b)=> tagCounts[b]-tagCounts[a] || a.localeCompare(b));
+  html += `<div class="nav-section"><h3>Tags (${tags.length})</h3><div class="tagbrowser">`;
+  tags.forEach(t => {
+    html += `<button class="tagchip ${state.activeTag===t?"active":""}" data-tag="${esc(t)}">${esc(t)}<span class="c">${tagCounts[t]}</span></button>`;
+  });
+  html += `</div></div>`;
+
+  const aside = document.getElementById("sidebar");
+  aside.innerHTML = html;
+  aside.querySelectorAll("[data-cat]").forEach(b => b.addEventListener("click", () => {
+    const c = b.getAttribute("data-cat");
+    state.activeCategory = (c === "__all__") ? null : c;
+    state.activeTag = null;
+    document.body.classList.remove("nav-open");
+    render();
+  }));
+  aside.querySelectorAll("[data-tag]").forEach(b => b.addEventListener("click", () => {
+    state.activeTag = b.getAttribute("data-tag");
+    state.activeCategory = null;
+    document.body.classList.remove("nav-open");
+    render();
+  }));
+}
+
+function renderList() {
+  const list = getFiltered();
+  document.getElementById("countLine").textContent =
+    `${list.length} snippet${list.length===1?"":"s"}` +
+    (state.activeCategory ? ` in ${CAT_LABEL[state.activeCategory]}` : "");
+
+  const afw = document.getElementById("activeFilterWrap");
+  if (state.activeTag) {
+    afw.innerHTML = `<span class="active-filter">#${esc(state.activeTag)} <button title="Clear">✕</button></span>`;
+    afw.querySelector("button").addEventListener("click", () => { state.activeTag = null; render(); });
+  } else afw.innerHTML = "";
+
+  const el = document.getElementById("list");
+  if (!list.length) { el.innerHTML = `<div class="empty">No snippets match. Try a different search or filter.</div>`; return; }
+
+  el.innerHTML = list.map(s => {
+    const thumb = (s.category === "visualization" && s.previewType)
+      ? `<div class="thumb">${svgPreview(s.previewType)}</div>` : "";
+    const big = (s.category === "visualization" && s.previewType)
+      ? `<div class="preview-lg">${svgPreview(s.previewType)}</div>` : "";
+    const tags = (s.tags||[]).map(t => `<button class="tag-pill" data-tag="${esc(t)}">${esc(t)}</button>`).join("");
+    return `<div class="card" data-id="${esc(s.id)}">
+      <div class="card-head">
+        ${thumb}
+        <div class="titles">
+          <div class="title">${esc(s.title)}</div>
+          <div class="sub">${esc(s.description||"")}</div>
+        </div>
+        <span class="cat-chip">${esc(CAT_LABEL[s.category]||s.category)}</span>
+        <span class="chevron">›</span>
+      </div>
+      <div class="card-body">
+        <div class="desc">${esc(s.description||"")}</div>
+        ${big}
+        <div class="code-wrap">
+          <pre><code>${esc(s.code)}</code></pre>
+          <button class="copy-btn">Copy</button>
+        </div>
+        <div class="tags-row">${tags}</div>
+        <div class="card-actions">
+          <button class="mini-btn act-edit">Edit</button>
+          <button class="mini-btn act-dup">Duplicate</button>
+          <button class="mini-btn danger act-del">Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  el.querySelectorAll(".card").forEach(card => {
+    const id = card.getAttribute("data-id");
+    card.querySelector(".card-head").addEventListener("click", e => {
+      if (e.target.closest(".cat-chip")) return;
+      card.classList.toggle("open");
+    });
+    card.querySelector(".copy-btn").addEventListener("click", e => {
+      e.stopPropagation();
+      const code = snippets.find(x => x.id === id).code;
+      copyText(code, e.target);
+    });
+    card.querySelector(".act-edit").addEventListener("click", () => openModal(id));
+    card.querySelector(".act-dup").addEventListener("click", () => duplicateSnippet(id));
+    card.querySelector(".act-del").addEventListener("click", () => deleteSnippet(id));
+    card.querySelectorAll(".tag-pill").forEach(p => p.addEventListener("click", () => {
+      state.activeTag = p.getAttribute("data-tag"); state.activeCategory = null; render();
+    }));
+  });
+}
+
+function render() { renderSidebar(); renderList(); }
+
+function copyText(text, btn) {
+  const done = () => { const o = btn.textContent; btn.textContent = "Copied ✓"; setTimeout(()=> btn.textContent = o, 1400); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(()=> fallbackCopy(text, done));
+  } else fallbackCopy(text, done);
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
+  ta.select(); try { document.execCommand("copy"); done(); } catch(e){} document.body.removeChild(ta);
+}
+
+/* ============================================================
+   CRUD + modal
+   ============================================================ */
+function deleteSnippet(id) {
+  const s = snippets.find(x => x.id === id);
+  if (!s) return;
+  if (!confirm(`Delete “${s.title}”? This cannot be undone.`)) return;
+  snippets = snippets.filter(x => x.id !== id);
+  saveSnippets(snippets); render();
+}
+
+function duplicateSnippet(id) {
+  const s = snippets.find(x => x.id === id);
+  if (!s) return;
+  const copy = JSON.parse(JSON.stringify(s));
+  copy.id = uid();
+  copy.title = s.title + " (copy)";
+  copy.created = Date.now(); copy.updated = Date.now();
+  snippets.unshift(copy);
+  saveSnippets(snippets); render();
+  openModal(copy.id);
+}
+
+const modal = document.getElementById("modalBackdrop");
+function fillSelectors() {
+  const cat = document.getElementById("f_category");
+  cat.innerHTML = SECTIONS.flatMap(s => s.cats).map(([id,l]) => `<option value="${id}">${esc(l)}</option>`).join("");
+  const pv = document.getElementById("f_previewType");
+  pv.innerHTML = `<option value="">— none —</option>` + PREVIEW_TYPES.map(t => `<option value="${t}">${t}</option>`).join("");
+}
+function openModal(id) {
+  const editing = !!id;
+  document.getElementById("modalTitle").textContent = editing ? "Edit snippet" : "New snippet";
+  const s = editing ? snippets.find(x => x.id === id) : null;
+  document.getElementById("f_id").value = editing ? id : "";
+  document.getElementById("f_title").value = s ? s.title : "";
+  document.getElementById("f_category").value = s ? s.category : "setup";
+  document.getElementById("f_previewType").value = s && s.previewType ? s.previewType : "";
+  document.getElementById("f_description").value = s ? (s.description||"") : "";
+  document.getElementById("f_tags").value = s ? (s.tags||[]).join(", ") : "";
+  document.getElementById("f_code").value = s ? s.code : "";
+  modal.classList.add("open");
+  setTimeout(()=> document.getElementById("f_title").focus(), 30);
+}
+function closeModal() { modal.classList.remove("open"); }
+
+document.getElementById("snippetForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const id = document.getElementById("f_id").value;
+  const data = {
+    title: document.getElementById("f_title").value.trim(),
+    category: document.getElementById("f_category").value,
+    previewType: document.getElementById("f_previewType").value || undefined,
+    description: document.getElementById("f_description").value.trim(),
+    tags: document.getElementById("f_tags").value.split(",").map(t => t.trim()).filter(Boolean),
+    code: document.getElementById("f_code").value,
+  };
+  if (id) {
+    const s = snippets.find(x => x.id === id);
+    Object.assign(s, data, { updated: Date.now() });
+  } else {
+    snippets.unshift(Object.assign({ id: uid(), created: Date.now(), updated: Date.now() }, data));
+  }
+  saveSnippets(snippets); closeModal(); render();
+});
+
+/* ============================================================
+   Import / export / reset
+   ============================================================ */
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(snippets, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "r-snippets-" + new Date().toISOString().slice(0,10) + ".json";
+  a.click(); URL.revokeObjectURL(url);
+}
+function importJSON(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const arr = JSON.parse(reader.result);
+      if (!Array.isArray(arr)) throw new Error("Not an array");
+      const have = new Set(snippets.map(s => s.id));
+      let added = 0;
+      arr.forEach(s => {
+        if (!s || !s.id) { s.id = uid(); }
+        if (!have.has(s.id)) { snippets.push(s); have.add(s.id); added++; }
+      });
+      saveSnippets(snippets); render();
+      alert(`Imported ${added} new snippet${added===1?"":"s"} (${arr.length - added} duplicate${arr.length-added===1?"":"s"} skipped).`);
+    } catch (err) { alert("Import failed: " + err.message); }
+  };
+  reader.readAsText(file);
+}
+function resetDefaults() {
+  if (!confirm("Reset library to factory defaults? Your custom snippets will be removed.")) return;
+  snippets = DEFAULT_SNIPPETS.slice();
+  saveSnippets(snippets); state.activeCategory = null; state.activeTag = null; render();
+}
+
+/* ============================================================
+   Theme
+   ============================================================ */
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  localStorage.setItem(THEME_KEY, t);
+}
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  applyTheme(saved || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+}
+
+/* ============================================================
+   Wire up controls + keyboard
+   ============================================================ */
+document.getElementById("search").addEventListener("input", e => { state.query = e.target.value; renderList(); });
+document.getElementById("sort").addEventListener("change", e => { state.sort = e.target.value; renderList(); });
+document.getElementById("addBtn").addEventListener("click", () => openModal(null));
+document.getElementById("cancelBtn").addEventListener("click", closeModal);
+modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+document.getElementById("themeBtn").addEventListener("click", () => {
+  applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+  render();
+});
+document.getElementById("hamburger").addEventListener("click", () => document.body.classList.toggle("nav-open"));
+document.getElementById("moreMenu").addEventListener("change", e => {
+  const v = e.target.value; e.target.value = "";
+  if (v === "export") exportJSON();
+  else if (v === "import") document.getElementById("importFile").click();
+  else if (v === "reset") resetDefaults();
+});
+document.getElementById("importFile").addEventListener("change", e => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ""; });
+
+document.addEventListener("keydown", e => {
+  if (e.key === "/" && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
+    e.preventDefault(); document.getElementById("search").focus();
+  } else if (e.key === "Escape") {
+    if (modal.classList.contains("open")) { closeModal(); return; }
+    const search = document.getElementById("search");
+    if (state.query) { state.query = ""; search.value = ""; renderList(); }
+    else if (state.activeTag || state.activeCategory) { state.activeTag = null; state.activeCategory = null; render(); }
+  }
+});
+
+/* ============================================================
+   Boot
+   ============================================================ */
+initTheme();
+fillSelectors();
+render();
+</script>
+</body>
+</html>
