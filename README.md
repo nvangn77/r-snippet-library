@@ -5,20 +5,26 @@ research. The entire app is a single self-contained `index.html` — no server, 
 build step, no dependencies, no internet required after the file loads. All
 personal data persists in the browser's `localStorage`.
 
-## Run it
+## Launch it
 
-**Locally (offline):** download `index.html` and open it directly in any modern
-browser. It works fully offline.
+**▶ Live app (GitHub Pages):** https://nvangn77.github.io/r-snippet-library/
 
-**Online / shared (GitHub Pages):** the same file is served as a static site so
-several people can reach it from one URL.
+**Zero-setup preview (works from any branch, no Pages needed):**
+https://htmlpreview.github.io/?https://raw.githubusercontent.com/nvangn77/r-snippet-library/main/index.html
 
-1. Push to the default branch.
-2. Repo **Settings → Pages → Build and deployment**, Source = *Deploy from a
-   branch*, Branch = your default branch, folder = `/ (root)`.
-3. The app is published at `https://<user>.github.io/<repo>/`.
+**Locally (offline):** download `index.html` and double-click it — it opens in any
+modern browser and works fully offline.
 
-No workflow file is needed — it's a single static HTML file.
+### One-time GitHub Pages setup
+
+Deployment is automated by [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml),
+so you only configure Pages once:
+
+1. Merge this to the **default branch** (`main`).
+2. Repo **Settings → Pages → Build and deployment → Source = "GitHub Actions"**.
+3. Done. Every push to `main` redeploys automatically; the live URL above stays
+   current. You can also trigger a deploy manually from the **Actions** tab
+   ("Deploy to GitHub Pages" → *Run workflow*).
 
 ## Sharing snippets between people
 
