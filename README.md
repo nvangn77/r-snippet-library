@@ -17,14 +17,15 @@ modern browser and works fully offline.
 
 ### One-time GitHub Pages setup
 
-Deployment is automated by [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml),
-so you only configure Pages once:
+The app is a single static file, so Pages serves it straight from the branch — no
+workflow or build needed. Configure it once:
 
-1. Merge this to the **default branch** (`main`).
-2. Repo **Settings → Pages → Build and deployment → Source = "GitHub Actions"**.
-3. Done. Every push to `main` redeploys automatically; the live URL above stays
-   current. You can also trigger a deploy manually from the **Actions** tab
-   ("Deploy to GitHub Pages" → *Run workflow*).
+1. Repo **Settings → Pages → Build and deployment**.
+2. **Source = "Deploy from a branch"**, Branch = **`main`**, folder = **`/ (root)`**, Save.
+3. Wait ~1 minute for the first build. The app is then live at the URL above.
+
+Every later push to `main` redeploys automatically. The `.nojekyll` file ensures
+the HTML is served verbatim (no Jekyll processing).
 
 ## Sharing snippets between people
 
