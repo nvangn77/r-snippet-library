@@ -165,6 +165,14 @@
 
   .empty { text-align: center; color: var(--text-dim); padding: 60px 20px; }
 
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px);
+    background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 8px;
+    font-size: 13.5px; font-weight: 500; box-shadow: var(--shadow);
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 60; max-width: 88vw;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
   /* Modal */
   .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; z-index: 50; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
   .modal-backdrop.open { display: flex; }
@@ -213,6 +221,7 @@
       <option value="category">By category</option>
     </select>
     <button id="addBtn" class="btn-accent">+ New</button>
+    <button id="authBtn" class="control" style="display:none" title="Sign in">Sign in</button>
     <select id="moreMenu" class="control" title="More">
       <option value="">⋯</option>
       <option value="export">Export JSON</option>
@@ -265,13 +274,32 @@
           <label for="f_code">R code</label>
           <textarea id="f_code" class="code" required></textarea>
         </div>
+        <div class="field" id="submitByField" style="display:none">
+          <label for="f_submittedBy">Your name (optional — shown to the moderator)</label>
+          <input id="f_submittedBy" placeholder="e.g. Jane from biostats" />
+        </div>
         <div class="modal-actions">
           <button type="button" class="mini-btn" id="cancelBtn">Cancel</button>
-          <button type="submit" class="btn-accent">Save snippet</button>
+          <button type="submit" class="btn-accent" id="saveBtn">Save snippet</button>
         </div>
       </form>
     </div>
   </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Shared mode (optional): set keys in config.js to enable the moderated,
+       multi-user library. With no keys, the app runs as the offline local app.
+       supabase-js loads from a CDN only in shared mode; if it is blocked the
+       app falls back to local mode automatically. -->
+  <script src="config.js"></script>
+  <script>
+    /* Load supabase-js ONLY when shared mode is configured, so the offline
+       local app keeps making zero external requests. */
+    if (window.SNIPPET_CONFIG && window.SNIPPET_CONFIG.url && window.SNIPPET_CONFIG.anonKey) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
+    }
+  </script>
 
 <script>
 "use strict";
@@ -1324,10 +1352,11 @@ tbl_merge(list(uni, multi),
 ];
 
 /* ============================================================
-   Storage layer
+   Storage layer (local mode — offline, single-user)
    ============================================================ */
 const STORE_KEY = "r-snippets-v4";
 const THEME_KEY = "r-snippets-theme";
+const CACHE_KEY = "r-snippets-cache";   // last-seen approved list (shared mode)
 
 function loadSnippets() {
   try {
@@ -1345,10 +1374,78 @@ function saveSnippets(arr) {
 }
 
 /* ============================================================
+   Shared backend (Phase 2 — Supabase, moderated multi-user)
+   Activated only when SNIPPET_CONFIG has url + anonKey AND the
+   supabase-js library loaded. Otherwise the app stays in local
+   mode and behaves exactly as the offline single-file version.
+   ============================================================ */
+const cfg = window.SNIPPET_CONFIG || {};
+const BACKEND = { enabled: false, client: null, user: null, isModerator: false };
+try {
+  if (cfg.url && cfg.anonKey && window.supabase && window.supabase.createClient) {
+    BACKEND.client = window.supabase.createClient(cfg.url, cfg.anonKey);
+    BACKEND.enabled = true;
+  }
+} catch (e) { BACKEND.enabled = false; }
+
+/* row (snake_case DB)  <->  snippet (camelCase app) */
+function rowToSnippet(r) {
+  return {
+    id: r.id, category: r.category, title: r.title,
+    description: r.description || "", code: r.code || "",
+    tags: Array.isArray(r.tags) ? r.tags : [],
+    previewType: r.preview_type || undefined,
+    status: r.status, submittedBy: r.submitted_by || "",
+    created: r.created_at ? Date.parse(r.created_at) : Date.now(),
+    updated: r.updated_at ? Date.parse(r.updated_at) : Date.now(),
+  };
+}
+function snippetToRow(s) {
+  return {
+    category: s.category, title: s.title, description: s.description || "",
+    code: s.code || "", tags: s.tags || [], preview_type: s.previewType || null,
+    submitted_by: s.submittedBy || null,
+  };
+}
+async function dbList(status) {
+  const { data, error } = await BACKEND.client
+    .from("snippets").select("*").eq("status", status);
+  if (error) throw error;
+  return data.map(rowToSnippet);
+}
+async function dbInsert(data) {              // status forced server-side by trigger
+  const { error } = await BACKEND.client.from("snippets").insert(snippetToRow(data));
+  if (error) throw error;
+}
+async function dbUpdate(id, data) {
+  const { error } = await BACKEND.client.from("snippets")
+    .update(Object.assign(snippetToRow(data), { updated_at: new Date().toISOString() }))
+    .eq("id", id);
+  if (error) throw error;
+}
+async function dbApprove(id) {
+  const { error } = await BACKEND.client.from("snippets")
+    .update({ status: "approved", updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) throw error;
+}
+async function dbDelete(id) {
+  const { error } = await BACKEND.client.from("snippets").delete().eq("id", id);
+  if (error) throw error;
+}
+async function dbIsModerator() {
+  try { const { data, error } = await BACKEND.client.rpc("is_moderator");
+        return error ? false : !!data; } catch (e) { return false; }
+}
+
+/* ============================================================
    App state
    ============================================================ */
-let snippets = loadSnippets();
-let state = { activeCategory: null, activeTag: null, query: "", sort: "newest" };
+let snippets = BACKEND.enabled
+  ? (function(){ try { return JSON.parse(localStorage.getItem(CACHE_KEY)) || []; } catch(e){ return []; } })()
+  : loadSnippets();
+let pendingList = [];
+let state = { activeCategory: null, activeTag: null, query: "", sort: "newest", view: "library" };
+function findSnippet(id) { return snippets.find(x => x.id === id) || pendingList.find(x => x.id === id); }
 
 /* ---- helpers ---- */
 function uid() { return "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -1380,7 +1477,12 @@ function getFiltered() {
 function renderSidebar() {
   const counts = {};
   snippets.forEach(s => counts[s.category] = (counts[s.category]||0)+1);
-  let html = `<button class="nav-item ${!state.activeCategory && !state.activeTag ? "active":""}" data-cat="__all__">
+  let html = "";
+  if (BACKEND.isModerator) {
+    html += `<button class="nav-item ${state.view==="review"?"active":""}" data-view="review">
+        <span>⚑ Review queue</span><span class="count">${pendingList.length}</span></button>`;
+  }
+  html += `<button class="nav-item ${state.view!=="review" && !state.activeCategory && !state.activeTag ? "active":""}" data-cat="__all__">
       <span>All snippets</span><span class="count">${snippets.length}</span></button>`;
   SECTIONS.forEach(sec => {
     html += `<div class="nav-section"><h3>${esc(sec.name)}</h3>`;
@@ -1404,14 +1506,21 @@ function renderSidebar() {
 
   const aside = document.getElementById("sidebar");
   aside.innerHTML = html;
+  aside.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => {
+    state.view = "review"; state.activeCategory = null; state.activeTag = null;
+    document.body.classList.remove("nav-open");
+    render();
+  }));
   aside.querySelectorAll("[data-cat]").forEach(b => b.addEventListener("click", () => {
     const c = b.getAttribute("data-cat");
+    state.view = "library";
     state.activeCategory = (c === "__all__") ? null : c;
     state.activeTag = null;
     document.body.classList.remove("nav-open");
     render();
   }));
   aside.querySelectorAll("[data-tag]").forEach(b => b.addEventListener("click", () => {
+    state.view = "library";
     state.activeTag = b.getAttribute("data-tag");
     state.activeCategory = null;
     document.body.classList.remove("nav-open");
@@ -1420,19 +1529,37 @@ function renderSidebar() {
 }
 
 function renderList() {
-  const list = getFiltered();
-  document.getElementById("countLine").textContent =
-    `${list.length} snippet${list.length===1?"":"s"}` +
-    (state.activeCategory ? ` in ${CAT_LABEL[state.activeCategory]}` : "");
+  const reviewing = state.view === "review";
+  let list;
+  if (reviewing) {
+    const q = state.query.trim().toLowerCase();
+    list = pendingList.filter(s => !q ||
+      (s.title + " " + (s.description||"") + " " + s.code + " " + (s.tags||[]).join(" ")).toLowerCase().includes(q));
+  } else {
+    list = getFiltered();
+  }
+  document.getElementById("countLine").textContent = reviewing
+    ? `${list.length} pending submission${list.length===1?"":"s"}`
+    : `${list.length} snippet${list.length===1?"":"s"}` +
+      (state.activeCategory ? ` in ${CAT_LABEL[state.activeCategory]}` : "");
 
   const afw = document.getElementById("activeFilterWrap");
-  if (state.activeTag) {
+  if (!reviewing && state.activeTag) {
     afw.innerHTML = `<span class="active-filter">#${esc(state.activeTag)} <button title="Clear">✕</button></span>`;
     afw.querySelector("button").addEventListener("click", () => { state.activeTag = null; render(); });
   } else afw.innerHTML = "";
 
   const el = document.getElementById("list");
-  if (!list.length) { el.innerHTML = `<div class="empty">No snippets match. Try a different search or filter.</div>`; return; }
+  if (!list.length) {
+    if (!reviewing && BACKEND.enabled && BACKEND.isModerator && !state.query && !state.activeCategory && !state.activeTag) {
+      el.innerHTML = `<div class="empty">The shared library is empty.<br><br>
+        <button class="btn-accent" id="seedBtn">Publish the 72 default snippets</button></div>`;
+      document.getElementById("seedBtn").addEventListener("click", seedDefaults);
+      return;
+    }
+    el.innerHTML = `<div class="empty">${reviewing ? "No pending submissions — the queue is clear." : "No snippets match. Try a different search or filter."}</div>`;
+    return;
+  }
 
   el.innerHTML = list.map(s => {
     const thumb = (s.category === "visualization" && s.previewType)
@@ -1440,6 +1567,7 @@ function renderList() {
     const big = (s.category === "visualization" && s.previewType)
       ? `<div class="preview-lg">${svgPreview(s.previewType)}</div>` : "";
     const tags = (s.tags||[]).map(t => `<button class="tag-pill" data-tag="${esc(t)}">${esc(t)}</button>`).join("");
+    const submitter = (reviewing && s.submittedBy) ? `<div class="sub">submitted by ${esc(s.submittedBy)}</div>` : "";
     return `<div class="card" data-id="${esc(s.id)}">
       <div class="card-head">
         ${thumb}
@@ -1452,17 +1580,14 @@ function renderList() {
       </div>
       <div class="card-body">
         <div class="desc">${esc(s.description||"")}</div>
+        ${submitter}
         ${big}
         <div class="code-wrap">
           <pre><code>${esc(s.code)}</code></pre>
           <button class="copy-btn">Copy</button>
         </div>
         <div class="tags-row">${tags}</div>
-        <div class="card-actions">
-          <button class="mini-btn act-edit">Edit</button>
-          <button class="mini-btn act-dup">Duplicate</button>
-          <button class="mini-btn danger act-del">Delete</button>
-        </div>
+        <div class="card-actions">${cardActions(reviewing)}</div>
       </div>
     </div>`;
   }).join("");
@@ -1475,16 +1600,38 @@ function renderList() {
     });
     card.querySelector(".copy-btn").addEventListener("click", e => {
       e.stopPropagation();
-      const code = snippets.find(x => x.id === id).code;
-      copyText(code, e.target);
+      const s = findSnippet(id); if (s) copyText(s.code, e.target);
     });
-    card.querySelector(".act-edit").addEventListener("click", () => openModal(id));
-    card.querySelector(".act-dup").addEventListener("click", () => duplicateSnippet(id));
-    card.querySelector(".act-del").addEventListener("click", () => deleteSnippet(id));
+    const on = (sel, fn) => { const b = card.querySelector(sel); if (b) b.addEventListener("click", fn); };
+    on(".act-edit", () => openModal(id));
+    on(".act-dup", () => duplicateSnippet(id));
+    on(".act-del", () => deleteSnippet(id));
+    on(".act-approve", () => approveSnippet(id));
+    on(".act-reject", () => rejectSnippet(id));
     card.querySelectorAll(".tag-pill").forEach(p => p.addEventListener("click", () => {
-      state.activeTag = p.getAttribute("data-tag"); state.activeCategory = null; render();
+      state.view = "library"; state.activeTag = p.getAttribute("data-tag"); state.activeCategory = null; render();
     }));
   });
+}
+
+/* Which action buttons a card shows, by mode. */
+function cardActions(reviewing) {
+  if (reviewing) {
+    return `<button class="mini-btn act-approve">Approve</button>
+            <button class="mini-btn act-edit">Edit</button>
+            <button class="mini-btn danger act-reject">Reject</button>`;
+  }
+  if (!BACKEND.enabled) {
+    return `<button class="mini-btn act-edit">Edit</button>
+            <button class="mini-btn act-dup">Duplicate</button>
+            <button class="mini-btn danger act-del">Delete</button>`;
+  }
+  if (BACKEND.isModerator) {
+    return `<button class="mini-btn act-edit">Edit</button>
+            <button class="mini-btn act-dup">Submit copy</button>
+            <button class="mini-btn danger act-del">Delete</button>`;
+  }
+  return `<button class="mini-btn act-dup">Submit a copy</button>`;
 }
 
 function render() { renderSidebar(); renderList(); }
@@ -1504,16 +1651,28 @@ function fallbackCopy(text, done) {
    CRUD + modal
    ============================================================ */
 function deleteSnippet(id) {
-  const s = snippets.find(x => x.id === id);
+  const s = findSnippet(id);
   if (!s) return;
+  if (BACKEND.enabled) {
+    if (!BACKEND.isModerator) return;
+    if (!confirm(`Delete “${s.title}”? This cannot be undone.`)) return;
+    dbDelete(id).then(() => { toast("Deleted"); return refreshFromBackend(); })
+                .catch(err => alert("Delete failed: " + err.message));
+    return;
+  }
   if (!confirm(`Delete “${s.title}”? This cannot be undone.`)) return;
   snippets = snippets.filter(x => x.id !== id);
   saveSnippets(snippets); render();
 }
 
 function duplicateSnippet(id) {
-  const s = snippets.find(x => x.id === id);
+  const s = findSnippet(id);
   if (!s) return;
+  if (BACKEND.enabled) {
+    // No instant clone in shared mode — open the form prefilled as a new submission.
+    openModalPrefill(Object.assign({}, s, { title: s.title + " (copy)" }));
+    return;
+  }
   const copy = JSON.parse(JSON.stringify(s));
   copy.id = uid();
   copy.title = s.title + " (copy)";
@@ -1523,6 +1682,30 @@ function duplicateSnippet(id) {
   openModal(copy.id);
 }
 
+/* One-time seed of the built-in defaults (moderator only, shared mode) */
+async function seedDefaults() {
+  if (!confirm("Publish the 72 built-in default snippets to the shared library?")) return;
+  toast("Publishing defaults…");
+  try {
+    const rows = DEFAULT_SNIPPETS.map(snippetToRow);
+    const { error } = await BACKEND.client.from("snippets").insert(rows);
+    if (error) throw error;
+    toast("Default library published"); await refreshFromBackend();
+  } catch (err) { alert("Seeding failed: " + err.message); }
+}
+
+/* Moderation actions (shared mode) */
+function approveSnippet(id) {
+  dbApprove(id).then(() => { toast("Approved — now public"); return refreshFromBackend(); })
+               .catch(err => alert("Approve failed: " + err.message));
+}
+function rejectSnippet(id) {
+  const s = findSnippet(id);
+  if (s && !confirm(`Reject and delete “${s.title}”?`)) return;
+  dbDelete(id).then(() => { toast("Rejected"); return refreshFromBackend(); })
+              .catch(err => alert("Reject failed: " + err.message));
+}
+
 const modal = document.getElementById("modalBackdrop");
 function fillSelectors() {
   const cat = document.getElementById("f_category");
@@ -1530,20 +1713,27 @@ function fillSelectors() {
   const pv = document.getElementById("f_previewType");
   pv.innerHTML = `<option value="">— none —</option>` + PREVIEW_TYPES.map(t => `<option value="${t}">${t}</option>`).join("");
 }
-function openModal(id) {
-  const editing = !!id;
-  document.getElementById("modalTitle").textContent = editing ? "Edit snippet" : "New snippet";
-  const s = editing ? snippets.find(x => x.id === id) : null;
-  document.getElementById("f_id").value = editing ? id : "";
+function fillModal(s, editingId) {
+  const submitting = BACKEND.enabled && !BACKEND.isModerator;   // public contributor
+  document.getElementById("modalTitle").textContent =
+    editingId ? "Edit snippet" : (submitting ? "Submit a snippet" : "New snippet");
+  document.getElementById("saveBtn").textContent =
+    editingId ? "Save snippet" : (submitting ? "Submit for review" : "Save snippet");
+  document.getElementById("f_id").value = editingId || "";
   document.getElementById("f_title").value = s ? s.title : "";
   document.getElementById("f_category").value = s ? s.category : "setup";
   document.getElementById("f_previewType").value = s && s.previewType ? s.previewType : "";
   document.getElementById("f_description").value = s ? (s.description||"") : "";
   document.getElementById("f_tags").value = s ? (s.tags||[]).join(", ") : "";
   document.getElementById("f_code").value = s ? s.code : "";
+  // "your name" only relevant for public submissions
+  document.getElementById("submitByField").style.display = (submitting && !editingId) ? "" : "none";
+  document.getElementById("f_submittedBy").value = "";
   modal.classList.add("open");
   setTimeout(()=> document.getElementById("f_title").focus(), 30);
 }
+function openModal(id) { fillModal(id ? findSnippet(id) : null, id || ""); }
+function openModalPrefill(data) { fillModal(data, ""); }   // new submission, prefilled
 function closeModal() { modal.classList.remove("open"); }
 
 document.getElementById("snippetForm").addEventListener("submit", e => {
@@ -1556,7 +1746,16 @@ document.getElementById("snippetForm").addEventListener("submit", e => {
     description: document.getElementById("f_description").value.trim(),
     tags: document.getElementById("f_tags").value.split(",").map(t => t.trim()).filter(Boolean),
     code: document.getElementById("f_code").value,
+    submittedBy: document.getElementById("f_submittedBy").value.trim() || undefined,
   };
+  if (BACKEND.enabled) {
+    const op = id ? dbUpdate(id, data) : dbInsert(data);
+    op.then(() => {
+        toast(id ? "Saved" : (BACKEND.isModerator ? "Added to the library" : "Thanks — your snippet is pending review"));
+        closeModal(); return refreshFromBackend();
+      }).catch(err => alert("Save failed: " + err.message));
+    return;
+  }
   if (id) {
     const s = snippets.find(x => x.id === id);
     Object.assign(s, data, { updated: Date.now() });
@@ -1628,9 +1827,14 @@ document.getElementById("hamburger").addEventListener("click", () => document.bo
 document.getElementById("moreMenu").addEventListener("change", e => {
   const v = e.target.value; e.target.value = "";
   if (v === "export") exportJSON();
+  else if (BACKEND.enabled && (v === "import" || v === "reset")) {
+    toast("Not available in shared mode — use submissions and the review queue.");
+  }
   else if (v === "import") document.getElementById("importFile").click();
   else if (v === "reset") resetDefaults();
 });
+const authBtn = document.getElementById("authBtn");
+if (authBtn) authBtn.addEventListener("click", () => { BACKEND.user ? signOut() : signIn(); });
 document.getElementById("importFile").addEventListener("change", e => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ""; });
 
 document.addEventListener("keydown", e => {
@@ -1645,11 +1849,87 @@ document.addEventListener("keydown", e => {
 });
 
 /* ============================================================
+   Toast + shared-mode auth / data refresh
+   ============================================================ */
+let toastTimer = null;
+function toast(msg) {
+  const t = document.getElementById("toast");
+  if (!t) return;
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+async function refreshFromBackend() {
+  try {
+    snippets = await dbList("approved");
+    localStorage.setItem(CACHE_KEY, JSON.stringify(snippets));
+  } catch (e) {
+    try { snippets = JSON.parse(localStorage.getItem(CACHE_KEY)) || DEFAULT_SNIPPETS.slice(); }
+    catch (_) { snippets = DEFAULT_SNIPPETS.slice(); }
+    toast("Offline — showing last saved copy.");
+  }
+  if (BACKEND.isModerator) {
+    try { pendingList = await dbList("pending"); } catch (e) { pendingList = []; }
+  } else {
+    pendingList = [];
+    if (state.view === "review") state.view = "library";
+  }
+  render();
+}
+
+function updateAuthUI() {
+  const btn = document.getElementById("authBtn");
+  if (!btn) return;
+  btn.style.display = BACKEND.enabled ? "" : "none";
+  btn.textContent = BACKEND.user
+    ? (BACKEND.isModerator ? "Sign out (moderator)" : "Sign out")
+    : "Sign in";
+  document.getElementById("addBtn").textContent =
+    (BACKEND.enabled && !BACKEND.isModerator) ? "+ Submit" : "+ New";
+}
+
+async function refreshAuth() {
+  try {
+    const { data } = await BACKEND.client.auth.getUser();
+    BACKEND.user = (data && data.user) || null;
+  } catch (e) { BACKEND.user = null; }
+  BACKEND.isModerator = BACKEND.user ? await dbIsModerator() : false;
+  updateAuthUI();
+}
+
+async function signIn() {
+  const email = prompt("Enter your email — we'll send a one-time sign-in link:");
+  if (!email) return;
+  const { error } = await BACKEND.client.auth.signInWithOtp({
+    email, options: { emailRedirectTo: cfg.signInRedirect || location.href }
+  });
+  alert(error ? ("Sign-in failed: " + error.message)
+              : "Check your email for the sign-in link, then reopen this page.");
+}
+async function signOut() {
+  try { await BACKEND.client.auth.signOut(); } catch (e) {}
+  await refreshAuth();
+  await refreshFromBackend();
+}
+
+/* ============================================================
    Boot
    ============================================================ */
 initTheme();
 fillSelectors();
-render();
+updateAuthUI();
+(async function boot() {
+  if (BACKEND.enabled) {
+    render();   // paint cached data immediately
+    BACKEND.client.auth.onAuthStateChange(() => { refreshAuth().then(refreshFromBackend); });
+    await refreshAuth();
+    await refreshFromBackend();
+  } else {
+    snippets = loadSnippets();
+    render();
+  }
+})();
 </script>
 </body>
 </html>

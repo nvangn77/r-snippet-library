@@ -38,9 +38,49 @@ that every visitor sees. Each person's own additions live only in their browser'
    (or share the JSON for someone to merge). Import dedupes by `id`, so merging is
    safe.
 
-> Want *live* real-time multi-user uploads instead of the export→merge flow? That
-> requires a backend (e.g. Node + SQLite, or Supabase) and is a deliberate
-> departure from the offline single-file design — a separate follow-up.
+> Want *live* multi-user uploads instead of the export→merge flow? Turn on **shared
+> mode** below.
+
+## Shared mode (multi-user, moderated, durable)
+
+By default the app runs offline in `localStorage`. Filling in `config.js` switches it to
+a shared library where **anyone can submit** a snippet and **you (the owner) approve**
+what becomes public — backed by [Supabase](https://supabase.com) (hosted Postgres + auth).
+The frontend stays the same vanilla-JS file on GitHub Pages.
+
+**How it behaves**
+- Visitors see only **approved** snippets and can **+ Submit** new ones → they land in a
+  pending queue (a database rule forces this; nobody can self-publish).
+- You **Sign in** (one-time email link). As a moderator you get a **⚑ Review queue** with
+  **Approve / Reject / Edit**, plus edit/delete on the live library.
+- Works offline too: the last approved list is cached in `localStorage`, so the page still
+  renders if the backend is unreachable.
+
+**Setup (one time)**
+1. Create a free **Supabase** project.
+2. In Supabase **SQL editor**, run [`supabase/schema.sql`](supabase/schema.sql) (table,
+   moderation rules / RLS, triggers).
+3. Add yourself as moderator:
+   `insert into public.moderators (email) values ('you@example.com');`
+4. **Project Settings → API**: copy the **Project URL** and **anon public** key into
+   [`config.js`](config.js) (both are safe to commit; security is enforced by RLS).
+5. Commit & push. Open the site, sign in, and click **"Publish the 72 default snippets"**
+   on the empty state to seed the library.
+
+> Never commit the Supabase **service_role** key. It belongs only in the backup secret below.
+
+## Protection against data loss (backups)
+
+Two independent copies, so a backend failure never loses the library:
+- **Supabase** keeps its own managed backups (enable point-in-time recovery on a paid tier).
+- **Daily git snapshot:** [`.github/workflows/backup.yml`](.github/workflows/backup.yml)
+  exports the whole table to `data/snippets-backup.json` and commits it — versioned,
+  off-site, free. Add two repo **secrets** for it: `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`
+  (the service_role key). It also runs on demand from the **Actions** tab.
+
+**Restore:** open the latest `data/snippets-backup.json` from git history and either import it
+via the app, or re-insert it with the Supabase API. The JSON format matches the app's
+export/import, which dedupes by `id`.
 
 ## Features
 
@@ -57,5 +97,7 @@ that every visitor sees. Each person's own additions live only in their browser'
 
 ## Constraints
 
-No frameworks, no compilation step, no external CDN calls — everything lives in
-one portable `index.html`.
+No frameworks, no compilation step. In the default **local mode** everything lives in one
+portable `index.html` with zero external calls. **Shared mode** is opt-in (via `config.js`)
+and is the only path that talks to the network — it loads `supabase-js` and calls your
+Supabase project; with no keys configured, none of that loads.
